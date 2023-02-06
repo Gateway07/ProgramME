@@ -1,0 +1,14 @@
+module Main (main) where
+
+import Lang ( Term(..), Restr(..), InEq(..) )
+import Test ( match, za, xyzab, a, b )
+import Interpreter ( int )
+import Process ( makeTree )
+
+main :: IO ()
+main = do
+  let v = int match [ za, xyzab ]
+  print v
+
+  let pt = makeTree match ([b, a], RESTR []) -- класс должен соответсвовать входным параметрам
+  print pt

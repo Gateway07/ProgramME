@@ -1,0 +1,99 @@
+{-# LANGUAGE InstanceSigs #-}
+module Lang (
+  Term(..), Cond(..), Func(..), Atom, Exp, Env, Var, EVal, AVal, EExp, State, Bind(..), Fname, Parm, 
+  CVar, CExp, CBind, CEnv, FreeIndx, Restr(..), InEq(..), Set, Conf, Contr(..), Split, Subst(..)) where
+
+type Atom  = String  -- алфавит атомов
+-- Term - это "почти все", помня при этом, что, на самом деле, понятие "Exp" намного уже чем "Term"
+data Term  = ALT Cond Term Term -- Ветвление в зависимости от условия (if Cond == True then Tearm1 else Term2)
+ | CALL Fname [Exp]       -- Вызов функции по имени с параметрами
+ | CONS Exp Exp           -- Конструкция из двух выражений
+ | ATOM Atom              -- Атомарное значение
+ | PVA  Vname             -- Связанная переменная (имя-строка) атомарная
+ | PVE  Vname             -- Связанная переменная (имя-строка) общая
+ | CVA  Int               -- Свободная переменная (имя-номер) атомарная
+ | CVE  Int               -- Свободная переменная (имя-номер) общая
+ deriving (Show)
+
+data Func = DEF Fname [Parm] Term -- Функция программы
+instance Show Func where
+  show :: Func -> String
+  show (DEF name _ _) = name
+
+data Cond = EQA AExp AExp         -- Условие в ALT на равенство AExp == AExp
+ | MATCH Exp EVar EVar AVar       -- определяет соответсвие exp и headEVar tailEVar headAVar
+ deriving (Show)
+
+type Fname = String                 -- Имя функции
+type Vname = String                 -- Значение 
+
+-- Частные виды "Term":
+type Exp   = Term                 -- Выражение 
+type Var   = Term                 -- Переменная  
+type EVal  = Term                 -- Значение общего типа 
+type AVal  = Term                 -- Значение атомарного типа
+
+type EExp  = Term                 -- Выражение общего типа
+type AExp  = Term                 -- Выражение атомарного типа
+
+type EVar  = Term                 -- Переменная составного типа 
+type AVar  = Term                 -- Переменная атомарного типа 
+
+type Parm  = Term 
+
+-- Семантика TSG
+data Bind  = Var := Exp           -- Связь
+  deriving (Show)
+type Env   = [Bind]               -- Окружение
+type State = (Term, Env)          -- Состояние
+
+-- Представление множеств c-конструкции 
+type CVar    = Term                 -- c-переменные
+type CExp    = Term                 -- c-выражения
+type CBind   = Bind                 -- c-связи
+type CEnv    = Env                  -- c-среды
+type FreeIndx = Int                 -- индексы c-переменных (числа)
+
+-- Рестрикции 
+data InEq    = CExp :=/=: CExp      -- Неравенство
+  deriving (Show)
+data Restr   = INCONSISTENT         -- Рестрикция
+             | RESTR [InEq]
+  deriving (Show)
+
+-- Представление множеств
+type Set   = ([CExp], Restr)        -- Класс представления
+type Conf  = ((Term, CEnv), Restr)  -- Конфигурация
+data Contr = S [Subst] | R Restr    -- Сужение
+  deriving (Show)
+type Split = (Contr, Contr)         -- Разбиение
+
+data Subst = CVar :-> CExp          -- Подстановка
+  deriving (Show)
+  
+-- Сравнение (неупорядоченные пары)
+instance Eq Bind where
+   (var1 := _) == (var2 := _) = var1 == var2
+
+-- а термы надо сравнивать так:
+instance Eq Term  where
+  ATOM a1    == ATOM a2      = a1==a2
+  CVA  a1    == CVA  a2      = a1==a2
+  CVE  a1    == CVE  a2      = a1==a2
+  PVA  a1    == PVA  a2      = a1==a2
+  PVE  a1    == PVE  a2      = a1==a2
+  CONS h1 t1 == CONS h2 t2   = (h1==h2) && (t1==t2)
+  CALL f1 t1s== CALL f2 t2s  = (f1==f2) && (t1s==t2s)
+  ALT  c1 t1 t2== ALT c2 t3 t4 = (c1==c2) && (t1==t3) && (t2==t4)
+  _          == _            = False
+
+instance Eq Cond where
+   EQA a1 a2 == EQA a3 a4 = (a1==a3) && (a2==a4)
+   MATCH e1 e2 e3 e4 == MATCH e5 e6 e7 e8 = (e1==e5) && (e2==e6) && (e3==e7) && (e4==e8)
+   _                ==  _ = False
+
+-- неравенства (неупорядоченные пары)
+instance Eq InEq where
+  (l1:=/=:r1) == (l2:=/=:r2) | (l1==l2) && (r1==r2) = True
+                             | (l1==r2) && (r1==l2) = True
+                             | otherwise            = False   
