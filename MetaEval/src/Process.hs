@@ -56,45 +56,47 @@ type Branch = (Contr, ProcessTree)
 
 makeTree :: [Func] -> Set -> ProcessTree
 makeTree prog cl@(ces, r) = _eval call prog i
-                      where 
-                         (DEF f prms _) : _ = prog
-                         ce = mkEnv prms ces
-                         call  = ((CALL f prms, ce), r)
-                         i  = mkFreeIndex 0 cl
+   where 
+      (DEF f prms _) : _ = prog
+      ce = mkEnv prms ces
+      call = ((CALL f prms, ce), r)
+      i = mkFreeIndex 0 cl
 
 _eval :: Conf -> [Func] -> FreeIndx -> ProcessTree
 _eval c@((CALL f args, ce), r) prog i =
-                     Node c [(identityFree, _eval c' prog i)]
-                     where
-                        DEF _ prms t' = getDef f prog
-                        ce' = mkEnv prms (args/.ce)
-                        c'  = ((t', ce'), r)
+   Node c [(identityFree, _eval c' prog i)]
+      where
+         DEF _ prms t' = getDef f prog
+         ce' = mkEnv prms (args/.ce)
+         c'  = ((t', ce'), r)
 
-_eval c@((ALT cnd t1 t2, ce), _) prog i =
-                     Node c [(cnt1, _eval c1' prog i'), (cnt2, _eval c2' prog i')]
-                     where
-                        ((cnt1, cnt2), uce1, uce2, i') = evalCAlt cnd ce i
-                        ((_,ce1), r1) = c/.cnt1
-                        c1' = ((t1, ce1 +. uce1), r1)
-                        ((_, ce2), r2) = c/.cnt2
-                        c2' = ((t2, ce2 +. uce2), r2)
+_eval c@((ALT cnd term1 term2, ce), _) prog i =
+   Node c [
+      (cnt1, _eval c1' prog i'), 
+      (cnt2, _eval c2' prog i')]
+      where
+         ((cnt1, cnt2), updCE1, updCE2, i') = evalCAlt cnd ce i
+         ((_, ce1), r1) = c/.cnt1
+         c1' = ((term1, ce1 +. updCE1), r1)
+         ((_, ce2), r2) = c/.cnt2
+         c2' = ((term2, ce2 +. updCE2), r2)
 
 _eval c@((_, _), _) _ _ = Leaf c
 
 -- Алгоритм построения дерева процессов с отсечением сухих поддеревьев
 makeTreeX :: [Func] -> Set -> ProcessTree
-makeTreeX   p cl = Node c (cutTree brs)
-              where 
-                  tree       = makeTree p cl
-                  Node c brs = tree
+makeTreeX   p cl = Node c (_cutTree brs)
+   where 
+      tree = makeTree p cl
+      Node c brs = tree
 
-cutTree :: [Branch] -> [Branch]
-cutTree [ ]                = [ ]
-cutTree (b@(cnt, tree) : bs)   =
-         case tree of
-            Leaf (_, INCONSISTENT)   -> cutTree bs
-            Node (_, INCONSISTENT) _ -> cutTree bs
-            Leaf _                   -> b :cutTree bs
-            Node c               bs' -> b':cutTree bs
-                     where tree' = Node c (cutTree bs')
-                           b'    = (cnt, tree')
+_cutTree :: [Branch] -> [Branch]
+_cutTree [ ]                = [ ]
+_cutTree (b@(cnt, tree) : bs)   =
+   case tree of
+      Leaf (_, INCONSISTENT)   -> _cutTree bs
+      Node (_, INCONSISTENT) _ -> _cutTree bs
+      Leaf _                   -> b :_cutTree bs
+      Node c               bs' -> b':_cutTree bs
+         where tree' = Node c (_cutTree bs')
+               b'    = (cnt, tree')

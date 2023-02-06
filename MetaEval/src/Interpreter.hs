@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FlexibleContexts #-}
-module Interpreter (CondRes(..), Clash(..), SubstApp(..), SubstUpd(..), mkCExps, int, evalAlt, evalCAlt, mkEnv, getDef, dom, cleanRestr, splitA, splitE, mkCAVar, mkCEVs) where
+module Interpreter (CondRes(..), Clash(..), SubstApp(..), SubstUpd(..), mkCExps, interpret, evalAlt, evalCAlt, mkEnv, getDef, dom, cleanRestr, splitA, splitE, mkCAVar, mkCEVs) where
 
 import Lang (Term(..), Cond(..), Func(..), Env, Var, EVal, State, Bind(..), Fname, FreeIndx, Parm, Restr(..), Split, Subst(..), Contr(..), CExp, CVar, CEnv, InEq(..), CBind, identityFree, emptyFree)
 import Lib ( nub )
@@ -18,11 +18,11 @@ instance SubstApp a subst => SubstApp [a] subst where
     cxs /. subst = map (/.subst) cxs
 
 instance SubstApp Clash [Subst] where
-    (l:=:r) /. subst = (l /. subst) :=: (r/.subst)
+    (l :=: r) /. subst = (l /. subst) :=: (r/.subst)
 
 -- умеем a/.y и b/.y => умеем (a,b)/.y
-instance {-# OVERLAPS #-} (SubstApp a subst, SubstApp b subst) => SubstApp (a,b) subst where
-    (ax,bx) /. subst = ( ax/.subst , bx/.subst )
+instance {-# OVERLAPS #-} (SubstApp a subst, SubstApp b subst) => SubstApp (a, b) subst where
+    (ax, bx) /. subst = ( ax/.subst, bx/.subst )
 
 -- и описание понятия "применить подстановку к ... "
 instance SubstApp Term [Subst] where
@@ -76,56 +76,56 @@ mkEnv  = zipWith (:=)
 getDef  :: Fname -> [Func] -> Func
 getDef fn prog = head [ fd | fd@(DEF f _ _) <- prog, f == fn ]
 
-int :: [Func] -> [EVal] -> EVal
-int   prog d  = eval s prog
+interpret :: [Func] -> [EVal] -> EVal
+interpret   prog d  = _eval s prog
              where (DEF f prms _) : _ = prog
                    e = mkEnv prms d
                    s = (CALL f prms, e)
 
-eval :: State -> [Func] -> EVal
-eval  (CALL f args, e) p = eval s' p                  
+_eval :: State -> [Func] -> EVal
+_eval  (CALL f args, e) p = _eval s' p                  
                                where DEF _ prms t' = getDef f p
                                      e' = mkEnv prms (args/.e)
                                      s' = (t',e')
 
-eval  (ALT c t1 t2, e) p = case evalAlt c e of
-                                 TRUE  ue -> eval (t1,e+.ue) p
-                                 FALSE ue -> eval (t2,e+.ue) p
+_eval  (ALT c t1 t2, e) p = case evalAlt c e of
+                                 TRUE  ue -> _eval (t1,e+.ue) p
+                                 FALSE ue -> _eval (t2,e+.ue) p
 
-eval  (exp, e)          _ = exp/.e
+_eval  (exp, e)          _ = exp/.e
 
 data CondRes = TRUE Env | FALSE Env deriving (Show)
 evalAlt :: Cond -> Env -> CondRes
-evalAlt (EQA x y)         e = let x' = x/.e; y' = y/.e in
-                            case (x', y') of
-                               (ATOM a, ATOM b) | a == b -> TRUE [ ]
-                               (ATOM _, ATOM _)        -> FALSE[ ]
+evalAlt (EQA x y) e = let x' = x/.e; y' = y/.e in
+  case (x', y') of
+    (ATOM a, ATOM b) | a == b -> TRUE [ ]
+    (ATOM _, ATOM _)        -> FALSE[ ]
 
 evalAlt (MATCH x vh vt va) e = let x' = x/.e in
-                            case x' of
-                               CONS h t          ->TRUE [vh:=h,vt:=t]
-                               ATOM _            ->FALSE[va:=x']
+  case x' of
+    CONS h t          ->TRUE [vh := h, vt := t]
+    ATOM _            ->FALSE[va := x']
 
 -- Вычисление условия на c-среде (Результат: разбиение и два пополнения c-среды)
 evalCAlt :: Cond -> CEnv -> FreeIndx -> (Split, CEnv, CEnv, FreeIndx)
 evalCAlt (EQA x y)         ce i =
-               let x' = x/.ce; y' = y/.ce in
-               case (x', y') of
-                  (a,     b     )| a==b -> ((identityFree, emptyFree), [],[],i)
-                  (ATOM a,ATOM b)       -> ((emptyFree,  identityFree), [],[],i)
-                  (CVA _, a     )       -> ( splitA x' a , [],[],i)
-                  (a,     CVA _ )       -> ( splitA y' a , [],[],i)
+  let x' = x/.ce; y' = y/.ce in
+  case (x', y') of
+    (a,     b     )| a==b -> ((identityFree, emptyFree), [],[],i)
+    (ATOM a,ATOM b)       -> ((emptyFree,  identityFree), [],[],i)
+    (CVA _, a     )       -> ( splitA x' a , [],[],i)
+    (a,     CVA _ )       -> ( splitA y' a , [],[],i)
 
 evalCAlt (MATCH x vh vt va) ce i =
-               let x' = x/.ce in
-               case x' of
-                  CONS h t ->((identityFree, emptyFree), [vh:=h,vt:=t],         [], i )
-                  ATOM a   ->((emptyFree, identityFree), [],              [va:=x'], i )
-                  CVA  _   ->((emptyFree, identityFree), [],              [va:=x'], i )
-                  CVE  _   ->(  split,     [vh:=ch,vt:=ct], [va:=ca], i')
+  let x' = x/.ce in
+  case x' of
+    CONS h t ->((identityFree, emptyFree), [vh:=h,vt:=t],         [], i )
+    ATOM a   ->((emptyFree, identityFree), [],              [va:=x'], i )
+    CVA  _   ->((emptyFree, identityFree), [],              [va:=x'], i )
+    CVE  _   ->(  split,     [vh:=ch, vt:=ct], [va:=ca], i')
                               where 
-                                 (split,i') = splitE x' i
-                                 (S[_:->(CONS ch ct)], S[_:->ca]) = split
+                                 (split, i') = splitE x' i
+                                 (S[_ :-> (CONS ch ct)], S[_ :-> ca]) = split
 
 -- oсновные функции работы с рестрикциями
 isContradiction, isTautology :: InEq -> Bool

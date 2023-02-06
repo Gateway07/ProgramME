@@ -1,8 +1,9 @@
 module Test (match, a, b, x, y, ab, za, xyzab, yx, exALL) where
 import Lang ( Term(..), Cond(..), Func(..), InEq(..), Subst(..) )
-import Representer( Restr(..), isElem, ura, ura', unifyCVars, decompose)
-import Interpreter ( SubstApp(..), int )
+import Representer( Restr(..), isElem, unifyCVars, decompose)
+import Interpreter ( SubstApp(..), interpret )
 import Surrounder(surround)
+import Solver (ura, ura')
 
 -- Пример программы на TSG
 match :: [Func]
@@ -85,11 +86,11 @@ exTst = map test [d1, d2, d3, d4, d5]           --- должно быть все
   where test di = isElem di odi  where (_, odi) = surround match di
 
 -- Примеры вычисления программы "match"
-ex_1 = int match d1
-ex_2 = int match d2
-ex_3 = int match d3
-ex_4 = int match d4
-ex_5 = int match d5
+ex_1 = interpret match d1
+ex_2 = interpret match d2
+ex_3 = interpret match d3
+ex_4 = interpret match d4
+ex_5 = interpret match d5
 
 -- Полный список подготовленых примеров
 exALL = ( ex_1, ex_2, ex_3, ex_4, ex_5, ex_6, 
