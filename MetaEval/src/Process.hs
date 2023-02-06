@@ -1,9 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances #-}
-module Process  (CVars(..), Tree(..), Branch, makeTree, makeTreeX, mkFreeIndex) where
+module Process  (CVars(..), ProcessTree(..), Branch, makeTree, makeTreeX, mkFreeIndex) where
 import Lib ( nub )
-import Lang (Term(..), Cond(..), Bind(..), Func(..), CVar, CExp, CBind, FreeIndx, Restr(..), InEq(..), Contr, Subst(..), Conf, Set)
-import Interpreter(SubstApp(..), SubstUpd(..), mkEnv, getDef)
-import Surrounder(evalCAlt, idC)
+import Lang (Term(..), Cond(..), Bind(..), Func(..), CVar, CExp, CBind, FreeIndx, Restr(..), InEq(..), Contr, Subst(..), Conf, identityFree, Set)
+import Interpreter(SubstApp(..), SubstUpd(..), mkEnv, getDef, evalCAlt)
 
 -- Извлечение списка c-переменных из c-конструкции
 class CVars a where cvars :: a -> [CExp]
@@ -50,28 +49,29 @@ mkFreeIndex i c = 1 + maximum(i: x)
                      x = map index (cvars c)
 
 -- Алгоритм построения дерева процессов
-data Tree   = Leaf Conf
-            | Node Conf [Branch] deriving (Show)
-type Branch = (Contr, Tree)
+data ProcessTree = Leaf Conf
+            | Node Conf [Branch] 
+   deriving (Show)
+type Branch = (Contr, ProcessTree)
 
-makeTree :: [Func] -> Set -> Tree
-makeTree prog cl@(ces, r) = eval call prog i
+makeTree :: [Func] -> Set -> ProcessTree
+makeTree prog cl@(ces, r) = _eval call prog i
                       where 
                          (DEF f prms _) : _ = prog
                          ce = mkEnv prms ces
                          call  = ((CALL f prms, ce), r)
                          i  = mkFreeIndex 0 cl
 
-eval :: Conf -> [Func] -> FreeIndx -> Tree
-eval c@((CALL f args, ce), r) prog i =
-                     Node c [(idC, eval c' prog i)]
+_eval :: Conf -> [Func] -> FreeIndx -> ProcessTree
+_eval c@((CALL f args, ce), r) prog i =
+                     Node c [(identityFree, _eval c' prog i)]
                      where
                         DEF _ prms t' = getDef f prog
                         ce' = mkEnv prms (args/.ce)
                         c'  = ((t', ce'), r)
 
-eval c@((ALT cnd t1 t2, ce), _) prog i =
-                     Node c [(cnt1, eval c1' prog i'), (cnt2, eval c2' prog i')]
+_eval c@((ALT cnd t1 t2, ce), _) prog i =
+                     Node c [(cnt1, _eval c1' prog i'), (cnt2, _eval c2' prog i')]
                      where
                         ((cnt1, cnt2), uce1, uce2, i') = evalCAlt cnd ce i
                         ((_,ce1), r1) = c/.cnt1
@@ -79,10 +79,10 @@ eval c@((ALT cnd t1 t2, ce), _) prog i =
                         ((_, ce2), r2) = c/.cnt2
                         c2' = ((t2, ce2 +. uce2), r2)
 
-eval c@((_, _), _) _ _ = Leaf c
+_eval c@((_, _), _) _ _ = Leaf c
 
 -- Алгоритм построения дерева процессов с отсечением сухих поддеревьев
-makeTreeX :: [Func] -> Set -> Tree
+makeTreeX :: [Func] -> Set -> ProcessTree
 makeTreeX   p cl = Node c (cutTree brs)
               where 
                   tree       = makeTree p cl

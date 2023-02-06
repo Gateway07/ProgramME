@@ -10,5 +10,5 @@ main = do
   let v = int match [ za, xyzab ]
   print v
 
-  let pt = makeTree match ([b, a], RESTR []) -- класс должен соответсвовать входным параметрам
+  let pt = makeTree match ([CVE 1, a], RESTR []) -- класс должен соответсвовать входным параметрам
   print pt

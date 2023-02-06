@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FlexibleContexts #-}
-module Interpreter (CondRes(..), Clash(..), SubstApp(..), SubstUpd(..), mkCExps, int, evalAlt, mkEnv, getDef, dom, cleanRestr, splitA, splitE, mkCAVar, mkCEVs) where
+module Interpreter (CondRes(..), Clash(..), SubstApp(..), SubstUpd(..), mkCExps, int, evalAlt, evalCAlt, mkEnv, getDef, dom, cleanRestr, splitA, splitE, mkCAVar, mkCEVs) where
 
-import Lang (Term(..), Cond(..), Func(..), Env, Var, EVal, State, Bind(..), Fname, FreeIndx, Parm, Restr(..), Split, Subst(..), Contr(..), CExp, CVar, InEq(..), CBind)
+import Lang (Term(..), Cond(..), Func(..), Env, Var, EVal, State, Bind(..), Fname, FreeIndx, Parm, Restr(..), Split, Subst(..), Contr(..), CExp, CVar, CEnv, InEq(..), CBind, identityFree, emptyFree)
 import Lib ( nub )
 import Unification (Clash(..))
 
@@ -105,6 +105,27 @@ evalAlt (MATCH x vh vt va) e = let x' = x/.e in
                             case x' of
                                CONS h t          ->TRUE [vh:=h,vt:=t]
                                ATOM _            ->FALSE[va:=x']
+
+-- Вычисление условия на c-среде (Результат: разбиение и два пополнения c-среды)
+evalCAlt :: Cond -> CEnv -> FreeIndx -> (Split, CEnv, CEnv, FreeIndx)
+evalCAlt (EQA x y)         ce i =
+               let x' = x/.ce; y' = y/.ce in
+               case (x', y') of
+                  (a,     b     )| a==b -> ((identityFree, emptyFree), [],[],i)
+                  (ATOM a,ATOM b)       -> ((emptyFree,  identityFree), [],[],i)
+                  (CVA _, a     )       -> ( splitA x' a , [],[],i)
+                  (a,     CVA _ )       -> ( splitA y' a , [],[],i)
+
+evalCAlt (MATCH x vh vt va) ce i =
+               let x' = x/.ce in
+               case x' of
+                  CONS h t ->((identityFree, emptyFree), [vh:=h,vt:=t],         [], i )
+                  ATOM a   ->((emptyFree, identityFree), [],              [va:=x'], i )
+                  CVA  _   ->((emptyFree, identityFree), [],              [va:=x'], i )
+                  CVE  _   ->(  split,     [vh:=ch,vt:=ct], [va:=ca], i')
+                              where 
+                                 (split,i') = splitE x' i
+                                 (S[_:->(CONS ch ct)], S[_:->ca]) = split
 
 -- oсновные функции работы с рестрикциями
 isContradiction, isTautology :: InEq -> Bool

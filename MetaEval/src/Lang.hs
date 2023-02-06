@@ -1,10 +1,10 @@
 {-# LANGUAGE InstanceSigs #-}
 module Lang (
-  Term(..), Cond(..), Func(..), Atom, Exp, Env, Var, EVal, AVal, EExp, State, Bind(..), Fname, Parm, 
+  Term(..), Cond(..), Func(..), Atom, Exp, Env, Var, EVal, AVal, EExp, State, Bind(..), Fname, Parm, identityFree, emptyFree,
   CVar, CExp, CBind, CEnv, FreeIndx, Restr(..), InEq(..), Set, Conf, Contr(..), Split, Subst(..)) where
 
 type Atom  = String  -- алфавит атомов
--- Term - это "почти все", помня при этом, что, на самом деле, понятие "Exp" намного уже чем "Term"
+-- Term - это "почти все", но на самом деле, понятие "Exp" намного уже чем "Term"
 data Term  = ALT Cond Term Term -- Ветвление в зависимости от условия (if Cond == True then Tearm1 else Term2)
  | CALL Fname [Exp]       -- Вызов функции по имени с параметрами
  | CONS Exp Exp           -- Конструкция из двух выражений
@@ -62,8 +62,18 @@ data Restr   = INCONSISTENT         -- Рестрикция
   deriving (Show)
 
 -- Представление множеств
-type Set   = ([CExp], Restr)        -- Класс представления
+type Set   = ([CExp], Restr)        -- Представление множества данных
 type Conf  = ((Term, CEnv), Restr)  -- Конфигурация
+
+-- Два 'особых' сужения:
+identityFree, emptyFree :: Contr
+identityFree   = S []
+emptyFree = R INCONSISTENT
+-- 1. identityFree,               emptyFree, слева - ВСЕ, справо - ПУСТО.
+-- 2. S [E.i :-> (CONS E.m E.n)], S [E.i :-> A.p], слева - расширение на две новые переменные, справо - замена на одну новую атомарную переменную.
+-- 3. S [A.j :-> A.k],            R RESTR[A.j :≠: A.k], слева - замена на новую переменную, справо - исключение этой переменную.
+-- 4. S [A.j :-> ’a],             R RESTR[A.j :≠: ’a], слева - замена на значение, справо - исключение этого значения.
+-- где левая и правая стороны комплементарны, а i/j/k — переменные из cx, m/n/p — новые c-переменные для cx
 data Contr = S [Subst] | R Restr    -- Сужение
   deriving (Show)
 type Split = (Contr, Contr)         -- Разбиение
