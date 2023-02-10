@@ -1,8 +1,20 @@
-import Lang ( Term(..), Restr(..) )
-import Test ( a, match )
+module Main (main) where
+
+import Lang ( Term(..), Restr(..), InEq(..) )
+import Test ( match, za, xyzab, a, b, strABC)
+import Interpreter ( interpret )
 import Process ( makeTree )
+import Solver (invertToSRs)
+import Text.Pretty.Simple (pPrint)
 
 main :: IO ()
 main = do
-  let pt = makeTree match ([CVE 1, a], RESTR []) -- класс должен соответсвовать входным параметрам
-  print pt
+  let v = interpret match [ za, xyzab ]
+  pPrint v
+
+  let t = makeTree match ([strABC, CVA 1], RESTR [])
+  pPrint t
+
+  let ex4  = invertToSRs  match ([strABC, CVA 1], RESTR []) (ATOM "FAILURE")
+  pPrint ex4
+  print ""

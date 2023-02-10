@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FlexibleContexts #-}
 module Surrounder (surround) where
-import Lang (Term(..), Func(..), Env, EVal, Set, CEnv, FreeIndx, Restr(..), CExp)
+import Lang (Term(..), Func(..), Bind, EVal, Set, CEnv, FreeIndx, Restr(..), CExp)
 import Interpreter (SubstApp(..), SubstUpd(..), CondRes(..), mkCExps, mkEnv, getDef, evalAlt, evalCAlt)
 import Unification (unify) 
 
@@ -12,7 +12,7 @@ surround p d =  _eval (CALL f prms) e ce (RESTR[]) ces p i
                  e        = mkEnv prms d
                  ce       = mkEnv prms ces
 
-_eval :: Term -> Env -> CEnv -> Restr -> [CExp] -> [Func] -> FreeIndx -> (EVal, Set)
+_eval :: Term -> [Bind] -> CEnv -> Restr -> [CExp] -> [Func] -> FreeIndx -> (EVal, Set)
 _eval (CALL f args) e ce r ces p i =
          _eval t e' ce' r ces p i
          where

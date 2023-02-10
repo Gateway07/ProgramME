@@ -1,4 +1,17 @@
-module Lib  (copy, nub, transpose, findSubStrIndex) where
+module Lib  (copy, nub, transpose, findSubStrIndex, trace, isEmpty) where
+import GHC.IO (unsafePerformIO)
+import Debug.Trace (traceIO)
+
+isEmpty :: [a] -> Bool
+isEmpty myList =
+    case myList of
+        [] -> True
+        _ -> False
+
+trace :: String -> a -> a
+trace string expr = unsafePerformIO $ do
+    traceIO string
+    return expr
 
 -- Standard list processing functions:
 copy             :: Int -> a -> [a]      -- make list of n copies of x

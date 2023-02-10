@@ -1,0 +1,7 @@
+2023-02-08 13:04:00.627577200000 [$pid(ThreadId 5)] ERROR APP - [CRITICAL] can not get the initial ghci prompt.
+2023-02-08 13:10:39.213066300000 [$pid(ThreadId 5)] ERROR APP - start debugging failed. user error (ExecResult not found.) : Left "user error (ExecResult not found.)"
+2023-02-08 13:12:51.723240800000 [$pid(ThreadId 5)] ERROR APP - start debugging failed. user error (ExecResult not found.) : Left "user error (ExecResult not found.)"
+2023-02-08 13:15:24.187199100000 [$pid(ThreadId 5)] ERROR APP - start debugging failed. user error (ExecResult not found.) : Left "user error (ExecResult not found.)"
+2023-02-08 15:33:31.938841600000 [$pid(ThreadId 5)] ERROR APP - user error (no stacktrace found.)
+2023-02-08 15:33:32.012074700000 [$pid(ThreadId 5)] ERROR APP - user error (no stacktrace found.)
+2023-02-08 15:33:35.928383100000 [$pid(ThreadId 5)] ERROR APP - user error (ExecResult not found.)

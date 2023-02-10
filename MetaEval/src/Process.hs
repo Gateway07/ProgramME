@@ -30,7 +30,7 @@ instance CVars c => CVars [c] where
    cvars cxs           = nub (concat (map cvars cxs))
 
 instance CVars Restr where
-   cvars INCONSISTENT  = []
+   cvars (INCONSISTENT _) = []
    cvars (RESTR ineqs) = cvars ineqs
 
 instance (CVars a, CVars b) => CVars (a, b) where
@@ -94,8 +94,8 @@ _cutTree :: [Branch] -> [Branch]
 _cutTree [ ]                = [ ]
 _cutTree (b@(cnt, tree) : bs)   =
    case tree of
-      Leaf (_, INCONSISTENT)   -> _cutTree bs
-      Node (_, INCONSISTENT) _ -> _cutTree bs
+      Leaf (_, INCONSISTENT _)   -> _cutTree bs
+      Node (_, INCONSISTENT _) _ -> _cutTree bs
       Leaf _                   -> b :_cutTree bs
       Node c               bs' -> b':_cutTree bs
          where tree' = Node c (_cutTree bs')

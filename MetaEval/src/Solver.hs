@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances #-}
-module Solver (ura, ura') where
+module Solver (invertToSRs, invertToSets) where
 
 import Lang (Func(..), EVal, CExp, Restr(..), Subst(..), Set)
 import Interpreter(SubstApp(..))
@@ -7,58 +7,56 @@ import Process (ProcessTree(..), Branch, makeTreeX)
 import Unification (unify) 
 
 -- Универсальный решающий алгоритм 
-type TLevel = [(Set, ProcessTree)]
-type Tab    = [(Set, CExp)]
+type TreeLevel = [(Set, ProcessTree)]
 
 -- Приведение программы к табличной форме
-tab :: [Func] -> Set -> Tab
-tab  p x = _evalTab [ (x, tree) ] [ ]
+makeTable :: [Func] -> Set -> [(Set, CExp)]
+makeTable  p x = _evalTab [ (x, tree) ] [ ]
            where tree = makeTreeX p x
 
-_evalTab :: TLevel -> TLevel ->   Tab
-_evalTab ((xi, Leaf c):lv1)    lv2 = (xi, cex):_evalTab lv1 lv2
+_evalTab :: TreeLevel -> TreeLevel ->  [(Set, CExp)]
+_evalTab ((xi, Leaf c):level1) level2 = (xi, cex):_evalTab level1 level2
                                  where ((exp, ce),_) = c
                                        cex = exp/.ce
+_evalTab ((xi, Node _ branches):lv1) lv2 = _evalTab lv1 lv2'
+                                 where lv2' = _evalBranch xi branches lv2
+_evalTab [ ] [ ] = [ ]
+_evalTab [ ] lv2 = _evalTab lv2 [ ]
 
-_evalTab ((xi, Node _ bs):lv1) lv2 = _evalTab lv1 lv2'
-                                 where lv2' = _tabB xi bs lv2
+_evalBranch :: Set -> [Branch] -> TreeLevel -> TreeLevel
+_evalBranch xi ((cnt,tree):bs) lv = _evalBranch xi bs ((xi/.cnt, tree):lv)
+_evalBranch _ [ ]              lv = lv
 
-_evalTab [ ]                   [ ] = [ ]
-_evalTab [ ]                   lv2 = _evalTab lv2 [ ]
+-- Перечисляет подклассы (где [x1, x2... ]) xi класса x, на которых вычисление p приводит к результату y: p <xi> = {y}
+invertToSets :: [Func] -> Set -> EVal -> [Set]
+invertToSets p x y = filterTableByUnify (makeTable p x) y
 
-_tabB :: Set -> [Branch] -> TLevel -> TLevel
-_tabB xi ((cnt,tree):bs) lv = _tabB xi bs ((xi/.cnt, tree):lv)
-_tabB _ [ ]              lv = lv
+-- Отвечает на запрос инверсного вычисления
+filterTableByUnify :: [(Set, CExp)] -> EVal -> [Set]
+filterTableByUnify ((xi, cex) : tabTail) y = 
+    case unify [cex] [y] of
+        (False, _) ->                        other
+        (True,  s) -> case subXi of
+                        (_, INCONSISTENT _) -> other
+                        _                 -> subXi:other
+                        where subXi = xi/.s
+    where other = filterTableByUnify tabTail y
 
--- Универсальный Решающий Алгоритм [x1,x2... ]
-ura' :: [Func] -> Set -> EVal -> [Set]
-ura' p x y = urac (tab p x) y
-
-urac :: Tab -> EVal -> [Set]
-urac ((xi, cex):ptab') y = 
-            case unify [cex] [y] of
-              (False, _) ->                        tail
-              (True,  s) -> case xi' of
-                              (_, INCONSISTENT) -> tail
-                              _                 -> xi':tail
-                            where xi' = xi/.s
-            where tail = urac ptab' y
-
-urac [ ]               _ = [ ]
+filterTableByUnify [ ]               _ = [ ]
 
 -- Сужение, приводящее класс к подклассу:
 _subClassCntr :: Set -> Set -> ([Subst], Restr)
-_subClassCntr (cesx, rx) (cesx', rx') = (s, r)
-  where
-    (True, s) = unify cesx cesx'
-    r = case rx' of
-          INCONSISTENT->INCONSISTENT
-          RESTR ineqs'->RESTR[ ineq | ineq <- ineqs', not(ineq `elem` ineqs)]
-                        where RESTR ineqs = rx/.s
+_subClassCntr (cesx1, rx1) (cesx2, rx2) = (s, r)
+    where
+        (True, s) = unify cesx1 cesx2
+        r = case rx2 of
+            INCONSISTENT ineqs' -> INCONSISTENT ineqs'
+            RESTR ineqs'-> RESTR[ ineq | ineq <- ineqs', not(ineq `elem` ineqs)]
+                where RESTR ineqs = rx1/.s
 
--- Универсальный Решающий Алгоритм  [(s1,r1), (s2,r2)... ]
-ura :: [Func] -> Set -> EVal  ->  [([Subst], Restr)]
-ura p x y = map altRepr (ura' p x y)
-            where 
-               altRepr:: Set -> ([Subst], Restr)
-               altRepr xi = _subClassCntr x xi
+-- Перечисляет ([(s1,r1), (s2,r2)... ]) значения c-переменных из x, при которых вычисление p приводит к результату y: p <x/.(S si)/.(R ri)>={y}
+invertToSRs :: [Func] -> Set -> EVal -> [([Subst], Restr)]
+invertToSRs p x y = map altRepr (invertToSets p x y)
+    where 
+        altRepr :: Set -> ([Subst], Restr)
+        altRepr xi = _subClassCntr x xi

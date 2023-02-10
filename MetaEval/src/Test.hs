@@ -1,50 +1,49 @@
-module Test (match, a, b, x, y, ab, za, xyzab, yx, exALL) where
+module Test (match, a, b, x, y, ab, za, xyzab, yx, strABC, strAAA) where
 import Lang ( Term(..), Cond(..), Func(..), InEq(..), Subst(..) )
 import Representer( Restr(..), isElem, unifyCVars, decompose)
 import Interpreter ( SubstApp(..), interpret )
 import Surrounder(surround)
-import Solver (ura, ura')
+import Solver (invertToSRs, invertToSets)
 
 -- Пример программы на TSG
 match :: [Func]
 match = [
-  DEF "Match"[patStr, string]
-    (CALL"CheckPos"[patStr, string, patStr, string]),
-  DEF "CheckPos" [pat, str, patStr, string]
-    (ALT (MATCH pat patHead patTail a_ )
-     (ALT (MATCH patHead e_ e_ a_patHead)
-       (ATOM "ERROR: Atom expected")
+  DEF "Match"[patStr, str]
+    (CALL"CheckPos"[patStr, str, patStr, str]),
+  DEF "CheckPos" [patStr, str, subs1, str1]
+    (ALT (MATCH patStr subsHead subsTail a_ )
+     (ALT (MATCH subsHead e_ e_ a_subsHead)
+       (ATOM "FAILURE")
        (ALT (MATCH str strHead strTail a_)
          (ALT (MATCH strHead e_ e_ a_strHead)
-           (ATOM "ERROR: Atom expected")
-           (ALT (EQA a_patHead a_strHead)
-             (CALL "CheckPos"[patTail, strTail, patStr, string])
-             (CALL "NextPos" [patStr, string])
+           (ATOM "FAILURE")
+           (ALT (EQA a_subsHead a_strHead)
+             (CALL "CheckPos"[subsTail, strTail, subs1, str1])
+             (CALL "NextPos" [subs1, str1])
          ) )
          (ATOM "FAILURE")
      ) )
      (ATOM "SUCCESS")
  ),
- DEF "NextPos" [patStr, string]
-   (ALT (MATCH string e_ stringTail a_)
-     (CALL "Match" [patStr, stringTail])
+ DEF "NextPos" [patStr, str]
+   (ALT (MATCH str e_ strTail a_)
+     (CALL "Match" [patStr, strTail])
      (ATOM "FAILURE")
    )]
 
  where
-   patStr    = PVE "patStr"
-   string      = PVE "string"
-   stringTail  = PVE "stringTail"
-   pat         = PVE "pat" 
-   str         = PVE "str"
-   patTail     = PVE "patTail" 
-   strTail     = PVE "strTail" 
-   patHead     = PVE "patHead"
-   strHead     = PVE "strHead"
-   e_          = PVE "_"
-   a_patHead   = PVA "patHead"
-   a_strHead   = PVA "strHead"
-   a_          = PVA "_"
+    patStr     = PVE "patStr"
+    str        = PVE "str"
+    strTail    = PVE "strTail"
+    subsTail   = PVE "subsTail" 
+    str1       = PVE "str1" 
+    subs1      = PVE "subs1"
+    strHead    = PVE "strHead"
+    e_         = PVE "e_"
+    subsHead   = PVA "subsHead"
+    a_subsHead = PVA "a_subsHead"
+    a_strHead  = PVA "a_strHead"
+    a_         = PVA "a_"
 
 -- Примеры входных данных для match
 a = CONS (ATOM "A") (ATOM "NIL")
@@ -103,20 +102,20 @@ strABC = CONS (ATOM "A") (CONS (ATOM "B") (CONS (ATOM "C") (ATOM "NIL")))
 strAAA = CONS (ATOM "A") (CONS (ATOM "A") (CONS (ATOM "A") (ATOM "NIL")))
 
 -- перечисление подстрок строки ('A 'B 'C)
-ex_u1' = ura' match ([CVE 1, strABC], RESTR []) (ATOM "SUCCESS")
-ex_u1  = ura  match ([CVE 1, strABC], RESTR []) (ATOM "SUCCESS")
+ex_u1' = invertToSets match ([CVE 1, strABC], RESTR []) (ATOM "SUCCESS")
+ex_u1  = invertToSRs  match ([CVE 1, strABC], RESTR []) (ATOM "SUCCESS")
 
 -- перечисление подстрок строки ('A 'A 'A)
-ex_u2' = ura' match ([CVE 1, strAAA], RESTR []) (ATOM "SUCCESS")
-ex_u2  = ura  match ([CVE 1, strAAA], RESTR []) (ATOM "SUCCESS")
+ex_u2' = invertToSets match ([CVE 1, strAAA], RESTR []) (ATOM "SUCCESS")
+ex_u2  = invertToSRs  match ([CVE 1, strAAA], RESTR []) (ATOM "SUCCESS")
 
 -- перечисление НЕ-подстрок строки ('A 'B 'C)
-ex_u3' = ura' match ([CVE 1, strABC], RESTR []) (ATOM "FAILURE")
-ex_u3  = ura  match ([CVE 1, strABC], RESTR []) (ATOM "FAILURE")
+ex_u3' = invertToSets match ([CVE 1, strABC], RESTR []) (ATOM "FAILURE")
+ex_u3  = invertToSRs  match ([CVE 1, strABC], RESTR []) (ATOM "FAILURE")
 
 -- перечисление НЕ-подстрок строки ('A 'A 'A)
-ex_u4' = ura' match ([CVE 1, strAAA], RESTR []) (ATOM "FAILURE")
-ex_u4  = ura  match ([CVE 1, strAAA], RESTR []) (ATOM "FAILURE")
+ex_u4' = invertToSets match ([CVE 1, strAAA], RESTR []) (ATOM "FAILURE")
+ex_u4  = invertToSRs  match ([CVE 1, strAAA], RESTR []) (ATOM "FAILURE")
 
 -- Пример на пересечение и декомпозицию окрестностей
 -- тест: после окрестности должно быть true

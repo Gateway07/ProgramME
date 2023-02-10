@@ -42,8 +42,8 @@ unifyCVars ca@(aces, ar) cb@(bces,br)
                            i   = mkFreeIndex (mkFreeIndex 0 ca) cb
 
 _solve :: [Clash] -> [Clash] -> Restr -> Set -> [Set] -> [CVar] -> FreeIndx -> Set -> UnifCRes
-_solve sc uc ur      (_,INCONSISTENT) cs va i cb = _noSol cb      --1
-_solve sc uc ur@INCONSISTENT          c cs va i cb = _noSol cb      --2
+_solve sc uc ur      (_, INCONSISTENT _) cs va i cb = _noSol cb      --1
+_solve sc uc ur@(INCONSISTENT _)         c cs va i cb = _noSol cb      --2
 
 _solve sc uc@(ch:uc') ur              c cs va i cb = case ch of    --3
     x         :=: y   | x==y -> _solve sc uc' ur c cs va i cb       --3.1
@@ -76,8 +76,8 @@ _solve sc [ ] (RESTR []) c cs _ _ _ = (subst,c:cs )            --5
                                  where subst = map (\(x:=:y) -> x :-> y) sc
 
 _noSol :: Set -> UnifCRes
-_noSol cb@(ces, _) = ([ ], [cb',cb''])
-                    where cb'  = (ces, INCONSISTENT) --cb' =cb/.emptC
+_noSol cb@(ces, _) = ([ ], [cb', cb''])
+                    where cb'  = (ces, INCONSISTENT []) --cb' =cb/.emptC
                           cb'' = cb                 --cb''=cb/.idC
 
 _spltP :: Contr -> Contr -> [Clash] -> [Clash] -> Restr -> Set -> [Set] -> [CVar] -> FreeIndx -> Set -> UnifCRes
@@ -86,7 +86,7 @@ _spltP c1 c2 sc uc ur c cs va i cb =
                             where c' =c/.c1; c''=c/.c2
                                   ((sc',uc'),ur') = ((sc,uc),ur)/.c1
                                   cs'=case c'' of
-                                        (_,INCONSISTENT) -> cs
+                                        (_, INCONSISTENT _) -> cs
                                         _                -> c'':cs
 
 _moveC :: [Clash] -> [Clash] -> Restr -> Set -> [Set] -> [CVar] -> FreeIndx -> Set -> UnifCRes
