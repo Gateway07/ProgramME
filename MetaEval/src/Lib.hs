@@ -1,6 +1,9 @@
-module Lib  (copy, nub, transpose, findSubStrIndex, trace, isEmpty) where
+module Lib  (copy, nub, transpose, findSubStrIndex, trace, isEmpty, when) where
 import GHC.IO (unsafePerformIO)
 import Debug.Trace (traceIO)
+
+when :: Bool -> a -> Maybe a
+when p x = if p then Just x else Nothing
 
 isEmpty :: [a] -> Bool
 isEmpty myList =
@@ -26,7 +29,7 @@ transpose         = foldr
                       (\xs xss -> zipWith (:) xs (xss ++ repeat []))
                       []
 
-findSubStrIndex :: String -> String -> Integer -> Integer
+findSubStrIndex :: String -> String -> Int -> Int
 findSubStrIndex "" _ _ = -1
 findSubStrIndex s target n
     | take (length target) s == target      = n

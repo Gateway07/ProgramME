@@ -1,44 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances #-}
-module Process  (CVars(..), ProcessTree(..), Branch, makeTree, makeTreeX, mkFreeIndex) where
-import Lib ( nub )
-import Lang (Term(..), Cond(..), Bind(..), Func(..), CVar, CExp, CBind, FreeIndx, Restr(..), InEq(..), Contr, Subst(..), Conf, identityFree, Set)
-import Interpreter(SubstApp(..), SubstUpd(..), mkEnv, getDef, evalCAlt)
-
--- Извлечение списка c-переменных из c-конструкции
-class CVars a where cvars :: a -> [CExp]
-instance CVars CExp where
-   cvars (ALT  c t1 t2)  = nub (cvars c ++ cvars t1 ++ cvars t2)
-   cvars (CALL _ ps)   = cvars ps
-   cvars (PVA  _)        = []
-   cvars (PVE  _)        = []
-   cvars (ATOM  _  )     = []
-   cvars cvar@(CVA _)    = [cvar]
-   cvars cvar@(CVE _)    = [cvar]
-   cvars (CONS h t)      = nub (cvars h ++ cvars t)
-
-instance CVars Cond where
-   cvars (EQA  a1 a2)   = nub (cvars a1 ++ cvars a2)
-   cvars (MATCH e h t a) = nub (cvars e ++ cvars h ++ cvars t ++ cvars a)
-
-instance CVars InEq where
-   cvars (ax :=/=: bx) = nub (cvars ax ++ cvars bx)
-
-instance CVars CBind where
-   cvars (_ := cx)  = cvars cx
-
-instance CVars c => CVars [c] where
-   cvars cxs           = nub (concat (map cvars cxs))
-
-instance CVars Restr where
-   cvars (INCONSISTENT _) = []
-   cvars (RESTR ineqs) = cvars ineqs
-
-instance (CVars a, CVars b) => CVars (a, b) where
-   cvars (ax, bx)      = nub (cvars ax ++ cvars bx)
-
--- cvars для подстановки
-instance CVars Subst where
-   cvars (ax :-> bx)   = nub (cvars ax ++ cvars bx)
+module Process  (ProcessTree(..), Branch, makeTree, makeTreeX, mkFreeIndex) where
+import Lang (Term(..), Func(..), CVar, FreeIndx, Restr(..), Contr, Conf, identityFree, Set)
+import Unification (CVars(..), SubstApp(..), SubstUpd(..), )
+import Interpreter(mkEnv, getDef, evalCAlt)
 
 -- Вспомогательные функции
 mkFreeIndex :: CVars a => FreeIndx -> a -> FreeIndx
@@ -85,18 +49,18 @@ _eval c@((_, _), _) _ _ = Leaf c
 
 -- Алгоритм построения дерева процессов с отсечением сухих поддеревьев
 makeTreeX :: [Func] -> Set -> ProcessTree
-makeTreeX   p cl = Node c (_cutTree brs)
+makeTreeX p cl = Node c (_cutTree branches)
    where 
       tree = makeTree p cl
-      Node c brs = tree
+      Node c branches = tree
 
 _cutTree :: [Branch] -> [Branch]
 _cutTree [ ]                = [ ]
-_cutTree (b@(cnt, tree) : bs)   =
+_cutTree (branch@(cnt, tree) : bs)   =
    case tree of
       Leaf (_, INCONSISTENT _)   -> _cutTree bs
       Node (_, INCONSISTENT _) _ -> _cutTree bs
-      Leaf _                   -> b :_cutTree bs
-      Node c               bs' -> b':_cutTree bs
+      Leaf _                     -> branch :_cutTree bs
+      Node c               bs'   -> b':_cutTree bs
          where tree' = Node c (_cutTree bs')
                b'    = (cnt, tree')

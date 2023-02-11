@@ -1,17 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances #-}
-module Representer (Restr(..), (.*.), isElem, unifyCVars, decompose) where
+module Representer (Restr(..), isElem, unifyCVars, decompose) where
 
-import Lib ( nub )
 import Lang (Term(..), EVal, CVar, FreeIndx, Restr(..), InEq(..), Contr, Subst(..), Set)
-import Interpreter(SubstApp(..), Clash(..), dom, cleanRestr, splitA, splitE, mkCEVs)
-import Process (CVars(..), mkFreeIndex)
-import Unification (unify) 
-
-infixl 9 .*. 
--- объединение без повторов dom sa и dom sb
-(.*.) :: [Subst] -> [Subst] -> [Subst]
-sa .*. sb = [ cvar:->((cvar/.sa)/.sb) | cvar<-dom_sa_sb ]
-            where dom_sa_sb = nub (dom sa ++ dom sb) 
+import Interpreter(Clash(..), splitA, splitE, mkCEVs)
+import Process (mkFreeIndex)
+import Unification (CVars(..), SubstApp(..), cleanRestr, unify, cvars) 
 
 -- Декомпозиция окрестности
 decompose :: Set -> [EVal] -> [EVal] -> (Set, Set)
@@ -101,4 +94,4 @@ isElem d (ces, r) = case  (b,    r') of
                           (True, RESTR[]) -> True
                           (_   ,    _   ) -> False
                     where (b, s) = unify ces d
-                          r'    = r/.s
+                          r'    = r/.s    

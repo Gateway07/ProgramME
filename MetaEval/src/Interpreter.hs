@@ -1,75 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FlexibleContexts #-}
-module Interpreter (CondRes(..), Clash(..), SubstApp(..), SubstUpd(..), mkCExps, interpret, evalAlt, evalCAlt, mkEnv, getDef, dom, cleanRestr, splitA, splitE, mkCAVar, mkCEVs) where
+module Interpreter (CondRes(..), Clash(..), mkCExps, interpret, evalAlt, evalCAlt, mkEnv, getDef, splitA, splitE, mkCAVar, mkCEVs) where
 
-import Lang (Term(..), Cond(..), Func(..), Exp, Var, EVal, State, Bind(..), Fname, FreeIndx, Parm, Restr(..), Split, Subst(..), Contr(..), CExp, CVar, CEnv, InEq(..), CBind, identityFree, emptyFree)
-import Lib ( nub, isEmpty )
-import Unification (Clash(..))
-
--- (a/.b) применить "a" к "b". Для начала, определяем, что такое применить Env к Exp
-infixl 8 /.
-class SubstApp a b where (/.) :: a -> b -> a
-instance SubstApp Term [Bind] where
-  (ATOM a)            /. _ = ATOM a
-  (CONS h t)          /. env = CONS (h/.env) (t/.env)
-  var                 /. env = 
-    if var `notElem` domEnv env then var
-    else head [ x | (v := x) <- env, v == var ]
-
--- общие правила расширения: умеем x/.y => умеем [x,...]/.y
-instance SubstApp a subst => SubstApp [a] subst where
-    cxs /. subst = map (/.subst) cxs
-
-instance SubstApp Clash [Subst] where
-    (l :=: r) /. subst = (l /. subst) :=: (r/.subst)
-
--- умеем a/.y и b/.y => умеем (a,b)/.y
-instance {-# OVERLAPS #-} (SubstApp a subst, SubstApp b subst) => SubstApp (a, b) subst where
-    (ax, bx) /. subst = ( ax/.subst, bx/.subst )
-
--- и описание понятия "применить подстановку к ... "
-instance SubstApp Term [Subst] where
-  (ALT   cnd t1 t2)  /.s = ALT   (cnd/.s) (t1/.s) (t2/.s)
-  (CALL  fn exps)    /.s = CALL  fn (exps/.s)
-  (ATOM a)           /._ = ATOM a
-  (CONS h t)         /.s = CONS (h/.s) (t/.s)
-  cvar               /.s = 
-    if cvar `notElem` dom s 
-      then cvar
-    else head[cexp | (cv :-> cexp) <- s, cv == cvar ]
-
-instance SubstApp Cond [Subst] where
-  (EQA  a1 a2)   /. s = EQA  (a1/.s) (a2/.s)
-  (MATCH e h t a) /. s = MATCH (e/.s) (h/.s) (t/.s) (a/.s)
-
-instance SubstApp InEq [Subst] where
-    (l:=/=:r) /. subst = (l/.subst) :=/=: (r/.subst)
-
-instance SubstApp CBind [Subst] where
-    (pvar := cexpr) /. subst = pvar := (cexpr/.subst)
-
-instance SubstApp Restr [Subst] where
-    INCONSISTENT ineqs  /. _ = INCONSISTENT ineqs
-    (RESTR ineqs) /. subst = cleanRestr(RESTR(ineqs/.subst))
-
-instance {-# OVERLAPPABLE #-} SubstApp c [Subst] => SubstApp (c,Restr) Contr where
-   (cx,rs) /. (S subst) = (cx/.subst, rs/.subst)
-   (cx,rs) /. (R restr) = (cx,        rs+.restr)
-
-instance SubstApp Clash Contr where
-   clash /. (S subst) = clash/.subst
-   clash /. (R _) = clash
-
--- Пополнить (x +. x'). Для начала, определяем, что такое "пополнить Env"
-infixl 7 +.
-class SubstUpd a where (+.) :: a -> a -> a
-instance SubstUpd [Bind] where
-   binds +. binds' = nub (binds' ++ binds)
--- рестрикции можно пополнять (+.)
-instance SubstUpd Restr where
-  INCONSISTENT ineqs +. _            = INCONSISTENT ineqs
-  _            +. INCONSISTENT ineqs = INCONSISTENT ineqs
-  (RESTR r1)   +. (RESTR r2)   = cleanRestr (RESTR(r1++r2))
-
+import Lang (Term(..), Cond(..), Func(..), Var, EVal, State, Bind(..), Fname, FreeIndx, Parm, Restr(..), Split, Subst(..), Contr(..), CExp, CVar, CEnv, InEq(..), identityFree, emptyFree)
+import Unification (SubstApp(..), SubstUpd(..), Clash(..))
 -- Интерпретатор TSG
 -- Построение среды (и c-среды, в последущем)
 mkEnv   :: [Var] -> [EVal] -> [Bind]
@@ -125,7 +58,7 @@ evalCAlt (MATCH x vh vt va) ce i =
   let x' = x/.ce in
   case x' of
     CONS h t -> ((identityFree, emptyFree), [vh:=h, vt:=t],         [], i)
-    ATOM a   -> ((emptyFree, identityFree), [],              [va:=x'], i)
+    ATOM _   -> ((emptyFree, identityFree), [],              [va:=x'], i)
     CVA  _   -> ((emptyFree, identityFree), [],              [va:=x'], i)
     CVE  _   -> (  split,     [vh:=ch, vt:=ct], [va:=ca], i')
                               where 
@@ -136,27 +69,6 @@ evalCAlt (MATCH x vh vt va) ce i =
                               where 
                                  (split, i') = splitE x' i
                                  (S[_ :-> (CONS ch ct)], S[_ :-> ca]) = split
-
--- oсновные функции работы с рестрикциями
-isContradiction, isTautology :: InEq -> Bool
-isContradiction   (left   :=/=: right)  = left == right
-
-isTautology       (ATOM a :=/=: ATOM b) = a /= b
-isTautology       (_   :=/=: _)  = False
-
-cleanRestr :: Restr -> Restr
-cleanRestr  (INCONSISTENT ineqs) = INCONSISTENT ineqs
-cleanRestr  (RESTR ineqs) 
-  | isEmpty ineqs = RESTR []
-  | any isContradiction ineqs = INCONSISTENT ineqs
-  | otherwise = RESTR (nub (filter (not.isTautology) ineqs))
-
--- (dom subst) и (subst1.*.subst2)
-dom :: [Subst] -> [CExp]
-dom subst = [ cvar | (cvar :-> _ ) <- subst ]
-
-domEnv :: [Bind] -> [Exp]
-domEnv env = [ var | (var := _ ) <- env ]
 
 -- генератор списка уникальных ce-переменных заданной длины
 mkCAVar, mkCEVar :: FreeIndx -> (CVar, FreeIndx)

@@ -1,6 +1,6 @@
 {-# LANGUAGE InstanceSigs #-}
 module Lang (
-  Term(..), Cond(..), Func(..), Atom, Exp, Var, EVal, AVal, EExp, State, Bind(..), Fname, Parm, identityFree, emptyFree,
+  Term(..), Cond(..), Func(..), Atom, Exp, Var, EVal, AVal, EExp, State, Bind(..), Fname, Parm, identityFree, emptyFree, dom, domEnv,
   CVar, CExp, CBind, CEnv, FreeIndx, Restr(..), InEq(..), Set, Conf, Contr(..), Split, Subst(..)) where
 
 type Atom  = String  -- алфавит атомов
@@ -67,7 +67,7 @@ type Conf  = ((Term, CEnv), Restr)  -- Конфигурация
 -- Два 'особых' сужения:
 identityFree, emptyFree :: Contr
 identityFree   = S []
-emptyFree = R (INCONSISTENT [CVA 0 :=/=: CVA 1])
+emptyFree = R (INCONSISTENT [])
 -- 1. identityFree,               emptyFree, слева - ВСЕ, справа - ПУСТО.
 -- 2. S [E.i :-> (CONS E.m E.n)], S [E.i :-> A.p], слева - расширение на две новые переменные, справа - замена на одну новую атомарную переменную.
 -- 3. S [A.j :-> A.k],            R RESTR[A.j :≠: A.k], слева - замена на новую переменную, справа - исключение этой переменную.
@@ -106,3 +106,10 @@ instance Eq InEq where
   (l1:=/=:r1) == (l2:=/=:r2) | (l1==l2) && (r1==r2) = True
                              | (l1==r2) && (r1==l2) = True
                              | otherwise            = False   
+
+-- (dom subst) и (subst1.*.subst2)
+dom :: [Subst] -> [CExp]
+dom subst = [ cvar | (cvar :-> _ ) <- subst ]
+
+domEnv :: [Bind] -> [Exp]
+domEnv env = [ var | (var := _ ) <- env ]

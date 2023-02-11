@@ -2,9 +2,8 @@
 module Solver (invertToSRs, invertToSets) where
 
 import Lang (Func(..), EVal, CExp, Restr(..), Subst(..), Set)
-import Interpreter(SubstApp(..))
 import Process (ProcessTree(..), Branch, makeTreeX)
-import Unification (unify) 
+import Unification (SubstApp(..), unify) 
 
 -- Универсальный решающий алгоритм 
 type TreeLevel = [(Set, ProcessTree)]

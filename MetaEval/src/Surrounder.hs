@@ -1,8 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FlexibleContexts #-}
 module Surrounder (surround) where
 import Lang (Term(..), Func(..), Bind, EVal, Set, CEnv, FreeIndx, Restr(..), CExp)
-import Interpreter (SubstApp(..), SubstUpd(..), CondRes(..), mkCExps, mkEnv, getDef, evalAlt, evalCAlt)
-import Unification (unify) 
+import Interpreter (CondRes(..), mkCExps, mkEnv, getDef, evalAlt, evalCAlt)
+import Unification (SubstApp(..), SubstUpd(..), unify) 
 
 -- Окрестностный анализатор (surroundings)
 surround :: [Func] -> [EVal] -> (EVal, Set)

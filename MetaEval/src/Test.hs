@@ -1,9 +1,10 @@
 module Test (match, a, b, x, y, ab, za, xyzab, yx, strABC, strAAA) where
 import Lang ( Term(..), Cond(..), Func(..), InEq(..), Subst(..) )
 import Representer( Restr(..), isElem, unifyCVars, decompose)
-import Interpreter ( SubstApp(..), interpret )
+import Interpreter ( interpret )
 import Surrounder(surround)
 import Solver (invertToSRs, invertToSets)
+import Unification (SubstApp(..))
 
 -- Пример программы на TSG
 match :: [Func]

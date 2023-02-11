@@ -1,5 +1,8 @@
 {
     "files.exclude": {
         "**/out": true
+    },
+    "code-runner.executorMap": {
+        "haskell": "stack runghc -- -isrc"
     }
 }
