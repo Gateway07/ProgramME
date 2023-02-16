@@ -1,7 +1,7 @@
 module Main (main) where
 
-import Lang ( Term(..), Restr(..), InEq(..) )
-import Test ( match, za, xyzab, a, b, strABC)
+import Lang ( Term(..), Restr(..) )
+import Test ( match, a, strABC)
 import Interpreter ( interpret )
 import Process ( makeTreeX )
 import Solver (invertToSRs)

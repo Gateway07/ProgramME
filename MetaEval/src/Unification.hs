@@ -1,8 +1,16 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FlexibleContexts #-}
-module Unification (CVars(..), Clash(..), SubstApp(..), SubstUpd(..), unify, unify', (.*.), cleanRestr) where
+module Unification (CVars(..), Clash(..), SubstApp(..), SubstUpd(..), unify, unify', (.*.), cleanRestr, mkFreeIndex, intersect) where
 
 import Lib ( nub, isEmpty )
-import Lang (Term(..), Cond(..), Bind(..), Restr(..), Subst(..), Contr(..), CExp, InEq(..), CBind, dom, domEnv)
+import Lang (Term(..), Cond(..), Bind(..), Restr(..), Subst(..), Contr(..), CExp, InEq(..), CBind, dom, domEnv, Set, FreeIndx, CVar)
+
+-- Вспомогательные функции
+mkFreeIndex :: CVars a => FreeIndx -> a -> FreeIndx
+mkFreeIndex i c = 1 + maximum(i: x)
+               where index :: CVar -> Int
+                     index (CVA i) = i
+                     index (CVE i) = i
+                     x = map index (cvars c)
 
 -- Извлечение списка c-переменных из c-конструкции
 class CVars a where cvars :: a -> [CExp]
@@ -170,4 +178,22 @@ unifyMoreGeneraly (eq:eqs) =
             (ATOM _) :=: (ATOM _)               -> Nothing
             v@(CVA _) :=: cx2                   -> _mgu [v :-> cx2]
             cx1 :=: v@(CVA _)                   -> _mgu [v :-> cx1]
-      where _mgu s = fmap (s .*.) (unifyMoreGeneraly (eqs/.s))               
+      where _mgu s = fmap (s .*.) (unifyMoreGeneraly (eqs/.s))          
+
+intersect :: Set -> Set -> [([Subst], Restr)]
+intersect (cs1, r1) (cs', rs') =
+      let (cs2, r2) = rename (cs', rs') (cs1, r1)
+      in case unifyMoreGeneraly (zipWith (:=:) cs1 cs2) of
+            Nothing     -> [ ]
+            Just s      -> case (r1 +. r2)/.s of
+                  INCONSISTENT _    ->[ ]
+                  _                 ->[(s, r2/.s)]
+
+rename :: Set -> Set -> Set
+rename c1 c2 = c1 /. sr where
+      n = mkFreeIndex 0 c2
+      ns = [n ..]
+      vs = cvars c1
+      sr = zipWith f vs ns
+      f v@(CVA i) j = v :-> CVA j
+      f v@(CVE i) j = v :-> CVE j

@@ -3,8 +3,7 @@ module Representer (Restr(..), isElem, unifyCVars, decompose) where
 
 import Lang (Term(..), EVal, CVar, FreeIndx, Restr(..), InEq(..), Contr, Subst(..), Set)
 import Interpreter(Clash(..), splitA, splitE, mkCEVs)
-import Process (mkFreeIndex)
-import Unification (CVars(..), SubstApp(..), cleanRestr, unify, cvars) 
+import Unification (CVars(..), SubstApp(..), cleanRestr, unify, cvars, mkFreeIndex) 
 
 -- Декомпозиция окрестности
 decompose :: Set -> [EVal] -> [EVal] -> (Set, Set)

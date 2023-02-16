@@ -1,16 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances #-}
-module Process  (ProcessTree(..), Branch, makeTree, makeTreeX, mkFreeIndex) where
+module Process  (ProcessTree(..), Branch, makeTree, makeTreeX) where
 import Lang (Term(..), Func(..), CVar, FreeIndx, Restr(..), Contr, Conf, identityFree, Set)
-import Unification (CVars(..), SubstApp(..), SubstUpd(..), )
+import Unification (CVars(..), SubstApp(..), SubstUpd(..), mkFreeIndex, )
 import Interpreter(mkEnv, getDef, evalCAlt)
-
--- Вспомогательные функции
-mkFreeIndex :: CVars a => FreeIndx -> a -> FreeIndx
-mkFreeIndex i c = 1 + maximum(i: x)
-               where index :: CVar -> Int
-                     index (CVA i) = i
-                     index (CVE i) = i
-                     x = map index (cvars c)
 
 -- Алгоритм построения дерева процессов
 data ProcessTree = Leaf Conf
