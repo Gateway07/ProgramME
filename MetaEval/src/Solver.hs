@@ -1,16 +1,16 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances #-}
-module Solver (invertToSRs, invertToSets) where
+module Solver (invertToSRs, invertToSets, makeTable, invertToSRsSym) where
 
-import Lang (Func(..), EVal, CExp, Restr(..), Subst(..), Set)
+import Lang (Func(..), EVal, CExp, Restr(..), Subst(..), Set, IOClass)
 import Process (ProcessTree(..), Branch, makeTreeX)
-import Unification (SubstApp(..), unify) 
+import Unification (SubstApp(..), unify, intersect) 
 
 -- Универсальный решающий алгоритм 
 type TreeLevel = [(Set, ProcessTree)]
 
 -- Приведение программы к табличной форме
 makeTable :: [Func] -> Set -> [(Set, CExp)]
-makeTable  p x = _evalTab [ (x, tree) ] [ ]
+makeTable  p x = _evalTab [(x, tree)] [ ]
            where tree = makeTreeX p x
 
 _evalTab :: TreeLevel -> TreeLevel ->  [(Set, CExp)]
@@ -59,3 +59,11 @@ invertToSRs p x y = map altRepr (invertToSets p x y)
     where 
         altRepr :: Set -> ([Subst], Restr)
         altRepr xi = _subClassCntr x xi
+
+-- sura (Симметричный УРА)
+invertToSRsSym :: [Func] -> IOClass -> [([Subst], Restr)]
+invertToSRsSym p ((cxs, cy), rs) =
+    concatMap f (makeTable p cin)
+        where
+            cin = (cxs, rs)
+            f ((cxs', rs'), cy') = (cy:cxs, rs) `intersect` (cy':cxs', rs')

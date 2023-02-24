@@ -1,12 +1,12 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FlexibleContexts #-}
-module Unification (CVars(..), Clash(..), SubstApp(..), SubstUpd(..), unify, unify', (.*.), cleanRestr, mkFreeIndex, intersect) where
+module Unification (CVars(..), Clash(..), SubstApp(..), SubstUpd(..), unify, unify', (.*.), cleanRestr, makeFreeIndex, intersect) where
 
 import Lib ( nub, isEmpty )
-import Lang (Term(..), Cond(..), Bind(..), Restr(..), Subst(..), Contr(..), CExp, InEq(..), CBind, dom, domEnv, Set, FreeIndx, CVar)
+import Lang (Term(..), Cond(..), Bind(..), Restr(..), Subst(..), Contr(..), CExp, InEq(..), CBind, dom, domEnv, Set, FreeIndx, CVar, Func)
 
 -- Вспомогательные функции
-mkFreeIndex :: CVars a => FreeIndx -> a -> FreeIndx
-mkFreeIndex i c = 1 + maximum(i: x)
+makeFreeIndex :: CVars a => FreeIndx -> a -> FreeIndx
+makeFreeIndex i c = 1 + maximum(i: x)
                where index :: CVar -> Int
                      index (CVA i) = i
                      index (CVE i) = i
@@ -165,6 +165,7 @@ infixl 9 .*.
 sa .*. sb = [ cvar:->((cvar /. sa) /. sb) | cvar<-dom_sa_sb ]
             where dom_sa_sb = nub (dom sa ++ dom sb) 
 
+-- mgu (Алгоритм MGU)
 unifyMoreGeneraly :: [Clash] -> Maybe [Subst]
 unifyMoreGeneraly [] = Just []
 unifyMoreGeneraly (eq:eqs) = 
@@ -186,12 +187,12 @@ intersect (cs1, r1) (cs', rs') =
       in case unifyMoreGeneraly (zipWith (:=:) cs1 cs2) of
             Nothing     -> [ ]
             Just s      -> case (r1 +. r2)/.s of
-                  INCONSISTENT _    ->[ ]
-                  _                 ->[(s, r2/.s)]
+                  INCONSISTENT _    -> [ ]
+                  _                 -> [(s, r2/.s)]
 
 rename :: Set -> Set -> Set
 rename c1 c2 = c1 /. sr where
-      n = mkFreeIndex 0 c2
+      n = makeFreeIndex 0 c2
       ns = [n ..]
       vs = cvars c1
       sr = zipWith f vs ns

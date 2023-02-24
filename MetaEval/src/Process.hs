@@ -1,8 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances #-}
 module Process  (ProcessTree(..), Branch, makeTree, makeTreeX) where
-import Lang (Term(..), Func(..), CVar, FreeIndx, Restr(..), Contr, Conf, identityFree, Set)
-import Unification (CVars(..), SubstApp(..), SubstUpd(..), mkFreeIndex, )
-import Interpreter(mkEnv, getDef, evalCAlt)
+import Lang (Term(..), Func(..), FreeIndx, Restr(..), Contr, Conf, identityFree, Set)
+import Unification (SubstApp(..), SubstUpd(..), makeFreeIndex, )
+import Interpreter(makeEnv, getDef, evalCAlt)
 
 -- Алгоритм построения дерева процессов
 data ProcessTree = Leaf Conf
@@ -14,16 +14,16 @@ makeTree :: [Func] -> Set -> ProcessTree
 makeTree prog cl@(ces, r) = _eval call prog i
    where 
       (DEF f prms _) : _ = prog
-      ce = mkEnv prms ces
+      ce = makeEnv prms ces
       call = ((CALL f prms, ce), r)
-      i = mkFreeIndex 0 cl
+      i = makeFreeIndex 0 cl
 
 _eval :: Conf -> [Func] -> FreeIndx -> ProcessTree
 _eval c@((CALL f args, ce), r) prog i =
    Node c [(identityFree, _eval c' prog i)]
       where
          DEF _ prms t' = getDef f prog
-         ce' = mkEnv prms (args/.ce)
+         ce' = makeEnv prms (args/.ce)
          c'  = ((t', ce'), r)
 
 _eval c@((ALT cnd term1 term2, ce), _) prog i =

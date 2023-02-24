@@ -1,18 +1,20 @@
 {-# LANGUAGE InstanceSigs #-}
 module Lang (
   Term(..), Cond(..), Func(..), Atom, Exp, Var, EVal, AVal, EExp, State, Bind(..), Fname, Parm, identityFree, emptyFree, dom, domEnv,
-  CVar, CExp, CBind, CEnv, FreeIndx, Restr(..), InEq(..), Set, Conf, Contr(..), Split, Subst(..)) where
+  CVar, CExp, CBind, CEnv, FreeIndx, Restr(..), InEq(..), Set, Conf, Contr(..), Split, Subst(..), IOClass) where
 
 type Atom  = String  -- алфавит атомов
 -- Term - это "почти все", но на самом деле, понятие "Exp" намного уже чем "Term"
 data Term  = ALT Cond Term Term -- Ветвление в зависимости от условия (if Cond == True then Tearm1 else Term2)
- | CALL Fname [Exp]       -- Вызов функции по имени с параметрами
- | CONS Exp Exp           -- Конструкция из двух выражений
- | ATOM Atom              -- Атомарное значение
- | PVA  Vname             -- Связанная атомарная переменная (имя-строка) 
- | PVE  Vname             -- Связанная общая переменная (имя-строка) 
- | CVA  Int               -- Свободная атомарная переменная (имя-номер) 
- | CVE  Int               -- Свободная общая переменная (имя-номер) 
+  | ALT' Cond Term Term Int 
+  | CALL Fname [Exp]       -- Вызов функции по имени с параметрами
+  | CALL' Fname [Exp] Int   
+  | CONS Exp Exp           -- Конструкция из двух выражений
+  | ATOM Atom              -- Атомарное значение
+  | PVA  Vname             -- Связанная атомарная переменная (имя-строка) 
+  | PVE  Vname             -- Связанная общая переменная (имя-строка) 
+  | CVA  Int               -- Свободная атомарная переменная (имя-номер) 
+  | CVE  Int               -- Свободная общая переменная (имя-номер) 
  deriving (Show)
 
 data Func = DEF Fname [Parm] Term -- Функция программы
@@ -56,13 +58,15 @@ type FreeIndx = Int                 -- индексы c-переменных (ч
 -- Рестрикции 
 data InEq    = CExp :=/=: CExp      -- Неравенство
   deriving (Show)
-data Restr   = INCONSISTENT [InEq]        -- Рестрикция
-             | RESTR [InEq]
+data Restr =                        -- Рестрикция
+  INCONSISTENT [InEq]
+  | RESTR [InEq]
   deriving (Show)
 
 -- Представление множеств
 type Set   = ([CExp], Restr)        -- Представление множества данных
 type Conf  = ((Term, CEnv), Restr)  -- Конфигурация
+type IOClass = (([CExp], CExp), Restr) -- ((cxs,cy), rs) — io-класс
 
 -- Два 'особых' сужения:
 identityFree, emptyFree :: Contr
