@@ -1,7 +1,7 @@
 {-# LANGUAGE InstanceSigs #-}
 module Lang (
   Term(..), Cond(..), Func(..), Atom, Exp, Var, EVal, AVal, EExp, State, Bind(..), Fname, Parm, identityFree, emptyFree, dom, domEnv,
-  CVar, CExp, CBind, CEnv, FreeIndx, Restr(..), InEq(..), Set, Conf, Contr(..), Split, Subst(..), IOClass) where
+  CVar, CExp, CBind, CEnv, FreeIndx, Restr(..), InEq(..), Set, Conf, Contr(..), Subst(..), IOClass) where
 
 type Atom  = String  -- алфавит атомов
 -- Term - это "почти все", но на самом деле, понятие "Exp" намного уже чем "Term"
@@ -79,8 +79,6 @@ emptyFree = R (INCONSISTENT [])
 -- где левая и правая стороны комплементарны, а i/j/k — переменные из cx, m/n/p — новые c-переменные для cx
 data Contr = S [Subst] | R Restr    -- Сужение
   deriving (Show)
-type Split = (Contr, Contr)         -- Разбиение
-
 data Subst = CVar :-> CExp          -- Подстановка
   deriving (Show)
   
@@ -113,7 +111,7 @@ instance Eq InEq where
 
 -- (dom subst) и (subst1.*.subst2)
 dom :: [Subst] -> [CExp]
-dom subst = [ cvar | (cvar :-> _ ) <- subst ]
+dom s = [ cvar | (cvar :-> _ ) <- s ]
 
 domEnv :: [Bind] -> [Exp]
 domEnv env = [ var | (var := _ ) <- env ]

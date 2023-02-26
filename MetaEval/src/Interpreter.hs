@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FlexibleContexts #-}
 module Interpreter (CondRes(..), Clash(..), makeCExps, interpret, evalAlt, evalCAlt, makeEnv, getDef, splitCVA, splitCVE, makeCAVar, makeCEVs) where
 
-import Lang (Term(..), Cond(..), Func(..), Var, EVal, State, Bind(..), Fname, FreeIndx, Parm, Restr(..), Split, Subst(..), Contr(..), CExp, CVar, CEnv, InEq(..), identityFree, emptyFree)
+import Lang (Term(..), Cond(..), Func(..), Var, EVal, State, Bind(..), Fname, FreeIndx, Parm, Restr(..), Subst(..), Contr(..), CExp, CVar, CEnv, InEq(..), identityFree, emptyFree)
 import Unification (SubstApp(..), SubstUpd(..), Clash(..))
 -- Интерпретатор TSG
 -- Построение среды (и c-среды, в последущем)
@@ -26,7 +26,7 @@ _eval  (CALL f args, e) p = _eval s' p
 _eval  (ALT c t1 t2, e) p = case evalAlt c e of
                                  TRUE  ue -> _eval (t1, e+.ue) p
                                  FALSE ue -> _eval (t2, e+.ue) p
-_eval  (exp, e)          _ = exp/.e
+_eval  (expr, e)          _ = expr/.e
 
 data CondRes = TRUE [Bind] 
   | FALSE [Bind] 
@@ -45,7 +45,7 @@ evalAlt (MATCH x vh vt va) e =
     ATOM _            -> FALSE[va := x']
 
 -- Вычисление условия на c-среде (Результат: разбиение и два пополнения c-среды)
-evalCAlt :: Cond -> CEnv -> FreeIndx -> (Split, CEnv, CEnv, FreeIndx)
+evalCAlt :: Cond -> CEnv -> FreeIndx -> ((Contr, Contr), CEnv, CEnv, FreeIndx)
 evalCAlt (EQA x y)         ce i =
   let x' = x/.ce; y' = y/.ce in
   case (x', y') of
@@ -80,17 +80,17 @@ makeCEVs cvs 0 i = (cvs, i)
 makeCEVs cvs n i = makeCEVs (cv:cvs) (n-1) i'        
     where (cv, i') = makeCEVar i   
 
-splitCVA :: CVar -> CExp -> Split
-splitCVA cv@(CVA _) caExp = (S[cv :-> caExp], R (RESTR[cv :=/=: caExp]))
+splitCVA :: CVar -> CExp -> (Contr, Contr)
+splitCVA cv@(CVA _) caExp = (S [cv :-> caExp], R (RESTR [cv :=/=: caExp]))
 
-splitCVE :: CVar -> FreeIndx -> (Split, FreeIndx)
-splitCVE cv@(CVE _) i = ((S[cv :-> CONS cvh cvt], 
-                      S[cv :-> cva]), i')
+splitCVE :: CVar -> FreeIndx -> ((Contr, Contr), FreeIndx)
+splitCVE cv@(CVE _) i = ((S [cv :-> CONS cvh cvt], 
+                      S [cv :-> cva]), i')
                       where (cvh, i1) = makeCEVar i
                             (cvt, i2) = makeCEVar i1
                             (cva, i') = makeCAVar i2
-splitCVE cv@(PVE _) i = ((S[cv :-> CONS cvh cvt], 
-                      S[cv :-> cva]), i')
+splitCVE cv@(PVE _) i = ((S [cv :-> CONS cvh cvt], 
+                      S [cv :-> cva]), i')
                       where (cvh, i1) = makeCEVar i
                             (cvt, i2) = makeCEVar i1
                             (cva, i') = makeCAVar i2
