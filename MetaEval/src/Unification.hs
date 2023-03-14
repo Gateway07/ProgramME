@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FlexibleContexts #-}
-module Unification (CVars(..), Clash(..), SubstApp(..), SubstUpd(..), unify, unify', (.*.), cleanRestr, makeFreeIndex, intersect) where
+module Unification (CVars(..), Clash(..), SubstApp(..), SubstUpd(..), unify, (.*.), cleanRestr, makeFreeIndex, intersect) where
 
 import Lib ( nub, isEmpty )
 import Lang (Term(..), Cond(..), Bind(..), Restr(..), Subst(..), Contr(..), CExp, InEq(..), CBind, dom, domEnv, Set, FreeIndx, CVar, Func)
@@ -122,7 +122,7 @@ instance SubstUpd [Bind] where
 instance SubstUpd Restr where
   INCONSISTENT ineqs +. _            = INCONSISTENT ineqs
   _            +. INCONSISTENT ineqs = INCONSISTENT ineqs
-  (RESTR r1)   +. (RESTR r2)   = cleanRestr (RESTR(r1++r2))
+  (RESTR r1)   +. (RESTR r2)   = cleanRestr (RESTR (r1++r2))
 
 -- Отождествление списков c-выражений
 data Clash   = CExp :=: CExp deriving (Show)
@@ -131,70 +131,72 @@ type UnifRes = (Bool, [Subst])
 fail :: UnifRes
 fail = (False, [])
 
+-- Отождествление c-выражений
 unify :: [CExp] -> [CExp]  -> UnifRes
 unify ces1 ces2
-      | length ces1 /= length ces2 = Unification.fail
-      | otherwise                      = unify' [ ] chs
-                              where chs = zipWith (:=:) ces1 ces2
+    | length ces1 /= length ces2 = Unification.fail
+    | otherwise = _eval [ ] chs
+        where chs = zipWith (:=:) ces1 ces2
 
-unify' :: [Clash] -> [Clash] ->  UnifRes
-unify' rchs [] = (True, subst)
-      where subst = map (\(a:=:b) -> a :-> b) rchs
-unify' rchs chs@(ch:chs') =
-   case ch of
-      ATOM a      :=:ATOM b | a==b -> unify' rchs chs'
-      ATOM a      :=:cex           -> Unification.fail
-      cvar@(CVA _):=:caex@(ATOM _) -> moveCl rchs chs
-      cvar@(CVA _):=:caex@(CVA _)  -> moveCl rchs chs
-      cvar@(CVA _):=:cex           -> Unification.fail
-      cvar@(CVE _):=:cex           -> moveCl rchs chs
-      CONS a1 b1  :=:CONS a2 b2    -> unify' rchs (p++chs')
-                                      where p=[a1:=:a2,b1:=:b2]
-      CONS a1 b1  :=:cex           -> Unification.fail
+_eval :: [Clash] -> [Clash] ->  UnifRes
+_eval rchs [] = (True, subst)
+    where subst = map (\(a :=: b) -> a :-> b) rchs
+_eval rchs chs@(ch:chs') =
+    case ch of
+        ATOM a  :=: ATOM b | a==b -> _eval rchs chs'
+        ATOM _  :=: _        -> Unification.fail
+        (CVA _) :=: (ATOM _) -> moveClash rchs chs
+        (CVA _) :=: (CVA _)  -> moveClash rchs chs
+        (CVA _) :=: _        -> Unification.fail
+        (CVE _) :=: _        -> moveClash rchs chs
+        CONS a1 b1  :=:CONS a2 b2    -> _eval rchs (p++chs')
+                                      where p=[a1 :=: a2, b1 :=: b2]
+        CONS _ _  :=: _           -> Unification.fail
 
-moveCl:: [Clash] -> [Clash] ->  UnifRes
-moveCl rchs chs@(ch@(cvar:=:cexp):chs') =
-      case [ y | (x:=:y)<-rchs, x==cvar ] of
-            [ ]             -> unify' (ch:rchs) chs'
-            [y] | y==cexp   -> unify' rchs      chs'
-            [y] | otherwise -> Unification.fail
+moveClash:: [Clash] -> [Clash] -> UnifRes
+moveClash rchs (ch@(cvar :=: cexp):chs') =
+    case 
+        [y | (x :=: y) <- rchs, x == cvar ] of
+        [ ]             -> _eval (ch:rchs) chs'
+        [y] | y == cexp -> _eval rchs      chs'
+        [_] | otherwise -> Unification.fail
 
 infixl 9 .*. 
 -- объединение без повторов dom sa и dom sb
 (.*.) :: [Subst] -> [Subst] -> [Subst]
-sa .*. sb = [ cvar:->((cvar /. sa) /. sb) | cvar<-dom_sa_sb ]
-            where dom_sa_sb = nub (dom sa ++ dom sb) 
+sa .*. sb = [ cvar :-> ((cvar /. sa) /. sb) | cvar <- dom_sa_sb ]
+    where dom_sa_sb = nub (dom sa ++ dom sb) 
 
--- mgu (Алгоритм MGU)
+-- mgu (Алгоритм Most General Unifier)
 unifyMoreGeneraly :: [Clash] -> Maybe [Subst]
 unifyMoreGeneraly [] = Just []
 unifyMoreGeneraly (eq:eqs) = 
       case eq of
             cx1 :=: cx2 | cx1 == cx2            -> unifyMoreGeneraly eqs
-            v@(CVE _) :=: cx2                   -> if v `notElem` cvars cx2 then _mgu [v:->cx2] else Nothing
-            cx1 :=: v@(CVE _)                   -> if v `notElem` cvars cx1 then _mgu [v:->cx1] else Nothing
-            (CONS cy1 cy2) :=: (CONS cx1 cx2)   -> unifyMoreGeneraly ([cy1:=:cx1, cy2:=:cx2] ++ eqs)
+            v@(CVE _) :=: cx2                   -> if v `notElem` cvars cx2 then _mgu [v :-> cx2] else Nothing
+            cx1 :=: v@(CVE _)                   -> if v `notElem` cvars cx1 then _mgu [v :-> cx1] else Nothing
+            (CONS cy1 cy2) :=: (CONS cx1 cx2)   -> unifyMoreGeneraly ([cy1 :=: cx1, cy2 :=: cx2] ++ eqs)
             (CONS _ _) :=: _                    -> Nothing
             _ :=: (CONS _ _)                    -> Nothing
             (ATOM _) :=: (ATOM _)               -> Nothing
             v@(CVA _) :=: cx2                   -> _mgu [v :-> cx2]
             cx1 :=: v@(CVA _)                   -> _mgu [v :-> cx1]
-      where _mgu s = fmap (s .*.) (unifyMoreGeneraly (eqs/.s))          
+      where _mgu s = fmap (s .*.) (unifyMoreGeneraly (eqs /. s))          
 
 intersect :: Set -> Set -> [([Subst], Restr)]
 intersect (cs1, r1) (cs', rs') =
-      let (cs2, r2) = rename (cs', rs') (cs1, r1)
-      in case unifyMoreGeneraly (zipWith (:=:) cs1 cs2) of
-            Nothing     -> [ ]
-            Just s      -> case (r1 +. r2)/.s of
-                  INCONSISTENT _    -> [ ]
-                  _                 -> [(s, r2/.s)]
+    let (cs2, r2) = rename (cs', rs') (cs1, r1) in
+    case unifyMoreGeneraly (zipWith (:=:) cs1 cs2) of
+        Nothing     -> [ ]
+        Just s      -> case (r1 +. r2)/.s of
+            INCONSISTENT _    -> [ ]
+            _                 -> [(s, r2/.s)]
 
 rename :: Set -> Set -> Set
 rename c1 c2 = c1 /. sr where
-      n = makeFreeIndex 0 c2
-      ns = [n ..]
-      vs = cvars c1
-      sr = zipWith f vs ns
-      f v@(CVA i) j = v :-> CVA j
-      f v@(CVE i) j = v :-> CVE j
+    n = makeFreeIndex 0 c2
+    ns = [n ..]
+    vs = cvars c1
+    sr = zipWith f vs ns
+    f v@(CVA _) j = v :-> CVA j
+    f v@(CVE _) j = v :-> CVE j

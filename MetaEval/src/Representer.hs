@@ -28,28 +28,28 @@ unifyCVars :: Set -> Set -> UnifCRes
 unifyCVars ca@(aces, ar) cb@(bces,br)
     | length aces/=length bces = _noSol  (bces,cleanRestr br)
     | otherwise =    _solve  [] chs (cleanRestr ar) cb' [] va i cb'
-                     where chs = zipWith (:=:) aces bces
-                           va  = cvars aces
-                           cb' = (bces, cleanRestr br)
-                           i   = makeFreeIndex (makeFreeIndex 0 ca) cb
+                        where chs = zipWith (:=:) aces bces
+                              va  = cvars aces
+                              cb' = (bces, cleanRestr br)
+                              i   = makeFreeIndex (makeFreeIndex 0 ca) cb
 
 _solve :: [Clash] -> [Clash] -> Restr -> Set -> [Set] -> [CVar] -> FreeIndx -> Set -> UnifCRes
-_solve sc uc ur      (_, INCONSISTENT _) cs va i cb = _noSol cb      --1
-_solve sc uc ur@(INCONSISTENT _)         c cs va i cb = _noSol cb      --2
+_solve _ _ _      (_, INCONSISTENT _) _ _ _ cb = _noSol cb      --1
+_solve _ _ (INCONSISTENT _)         _ _ _ _ cb = _noSol cb      --2
 
 _solve sc uc@(ch:uc') ur              c cs va i cb = case ch of    --3
     x         :=: y   | x==y -> _solve sc uc' ur c cs va i cb       --3.1
     ATOM _    :=: ATOM _     -> _noSol cb                           --3.2
-    v@(CVE  _):=: y          -> _moveC sc uc ur c cs va i cb        --3.3
+    (CVE  _) :=: _          -> _moveC sc uc ur c cs va i cb        --3.3
     CONS a b  :=: CONS x y   -> _solve sc uc'' ur c cs va i cb      --3.4
                                where uc''=[a:=:x, b:=:y]++uc'
-    CONS a b  :=: cve@(CVE _)-> _spltP c1 c2 sc uc ur c cs va i' cb --3.5
+    CONS _ _  :=: cve@(CVE _)-> _spltP c1 c2 sc uc ur c cs va i' cb --3.5
                                where ((c1,c2), i') = splitCVE cve i
-    CONS a b  :=:_          -> _noSol cb                           --3.6
+    CONS _ _  :=:_          -> _noSol cb                           --3.6
     _         :=: CONS _ _   -> _noSol cb                           --3.7
-    caexp     :=: cve@(CVE _)-> _spltP c2 c1 sc uc ur c cs va i' cb --3.8
+    _     :=: cve@(CVE _)-> _spltP c2 c1 sc uc ur c cs va i' cb --3.8
                                where ((c1, c2), i') = splitCVE cve i
-    v@(CVA _) :=:caexp | v `elem` va ->                           --3.9
+    v@(CVA _) :=: _ | v `elem` va ->                           --3.9
                                _moveC sc uc ur c cs va i cb
     v@(CVA _) :=: caexp | otherwise   ->                           --3.10
                                _spltP c1 c2 sc uc ur c cs va i cb

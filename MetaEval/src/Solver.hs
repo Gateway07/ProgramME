@@ -15,8 +15,8 @@ makeTable  p x = _evalTab [(x, tree)] [ ]
 
 _evalTab :: TreeLevel -> TreeLevel ->  [(Set, CExp)]
 _evalTab ((xi, Leaf c):level1) level2 = (xi, cex):_evalTab level1 level2
-                                 where ((exp, ce),_) = c
-                                       cex = exp/.ce
+                                 where ((expr, ce),_) = c
+                                       cex = expr/.ce
 _evalTab ((xi, Node _ branches):lv1) lv2 = _evalTab lv1 lv2'
                                  where lv2' = _evalBranch xi branches lv2
 _evalTab [ ] [ ] = [ ]
