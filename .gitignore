@@ -1,8 +1,4 @@
-MetaEval/out/production/my-project/Interpreter.hs
-MetaEval/out/production/my-project/Lib.hs
-MetaEval/out/production/my-project/Main.hs
-MetaEval/out/production/my-project/SetRepr.hs
-MetaEval/out/production/my-project/Test.hs
-MetaEval/out/production/my-project/TSG.hs
-MetaEval/out/test/my-project/Spec.hs
+MetaEval/out/production/*/*.*
+MetaEval/out/test/*/*.*
 MetaEval/stack.yaml.lock
+MetaEval/src/*.hs_

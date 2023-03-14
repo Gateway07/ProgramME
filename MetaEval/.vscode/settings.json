@@ -4,5 +4,6 @@
     },
     "code-runner.executorMap": {
         "haskell": "stack runghc -- -isrc"
-    }
+    },
+    "editor.detectIndentation": false
 }
