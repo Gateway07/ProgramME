@@ -155,7 +155,7 @@ if __name__ == "__main__":
     n = len(vec)
     fs, in_vec, out_vec = sort_merge(n)  # _merge / _bubble / _dot / _index
 
-    # check = [And(in_vec[j] == vec[j]) for j in range(n)]
-    check = []
-    for m in get_models(And(fs, And(check)), out_vec):
+    check = [And(in_vec[j] == vec[j]) for j in range(n)]
+    #check = []
+    for m in get_models(And(fs, And(check)), out_vec, verbose=True):
         print([m.eval(out_vec[j]) for j in range(n)])
