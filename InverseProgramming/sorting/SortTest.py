@@ -1,6 +1,7 @@
 from unittest import TestCase, main
 
 from SortAlg import *
+from Z3Util import get_models
 
 
 class SortTest(TestCase):
