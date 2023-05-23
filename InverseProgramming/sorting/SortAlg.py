@@ -5,10 +5,11 @@ from z3 import *
 from Z3Util import get_models
 
 
-def sort_dot(n: int) -> (BoolRef, List, List):
+def sort_dot(n: int, in_vec: List = None) -> (BoolRef, List, List):
     """ Define constraints for array's sorting based on idea that [I] * [M] = [O], where I - input vector, M -
     permutation matrix with 0 and 1, O - output sorted vector, * - dot vector's operation. """
-    in_vec = [Int('x{}'.format(i)) for i in range(n)]
+    if in_vec == None:
+        in_vec = [Int('x{}'.format(i)) for i in range(n)]
 
     matrix = []
     for row in range(n):
@@ -31,7 +32,7 @@ def sort_dot(n: int) -> (BoolRef, List, List):
     return And(f), in_vec, out_vec
 
 
-def sort_bubble(n: int) -> (BoolRef, List, List):
+def sort_bubble(n: int, in_vec: List = None) -> (BoolRef, List, List):
     """ Define constraints for array's sorting based on classical bubble sort.  """
 
     def up(arr):
@@ -49,9 +50,10 @@ def sort_bubble(n: int) -> (BoolRef, List, List):
             fs.append(c)
         return fs
 
-    fs = []  # list of assertions to be returned
-    in_vec = [Int('x{}'.format(i)) for i in range(n)]
+    if in_vec == None:
+        in_vec = [Int('x{}'.format(i)) for i in range(n)]
 
+    fs = []  # list of assertions to be returned
     # recursive call to bubble_up
     out_vec = in_vec.copy()
     for _ in range(n):
@@ -60,7 +62,7 @@ def sort_bubble(n: int) -> (BoolRef, List, List):
     return And(fs), in_vec, out_vec
 
 
-def sort_merge(n: int) -> (BoolRef, List, List):
+def sort_merge(n: int, in_vec: List = None) -> (BoolRef, List, List):
     """ Define constraints for array's sorting based on classical sort by merging.  """
 
     def cmp2(x, y):
@@ -120,18 +122,20 @@ def sort_merge(n: int) -> (BoolRef, List, List):
 
         return fs, out_list
 
-    in_vec = [Int('{}'.format(i)) for i in range(n)]
+    if in_vec == None:
+        in_vec = [Int('{}'.format(i)) for i in range(n)]
 
     fs, out_vec = split(in_vec)
     fs.extend([out_vec[i] <= out_vec[i + 1] for i in range(n - 1)])
     return And(fs), in_vec, out_vec
 
 
-def sort_index(n: int) -> (BoolRef, List, List):
+def sort_index(n: int, in_vec: List = None) -> (BoolRef, List, List):
     """ Define constraints for array's sorting based on invariant that sorting value as index and its counts
     are the same before and after sorting!
     """
-    in_vec = [FreshInt() for _ in range(n)]
+    if in_vec == None:
+        in_vec = [FreshInt() for _ in range(n)]
     in_counts = K(IntSort(), 0)
     for v in in_vec:
         in_counts = Store(in_counts, v, in_counts[v] + 1)
@@ -159,3 +163,6 @@ if __name__ == "__main__":
     #check = []
     for m in get_models(And(fs, And(check)), out_vec, verbose=True):
         print([m.eval(out_vec[j]) for j in range(n)])
+
+    fs1, in_vec, out_vec1 = sort_merge(n)
+    fs2, in_vec, out_vec = sort_dot(n, in_vec)

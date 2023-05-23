@@ -38,3 +38,4 @@ def get_models(F: BoolRef, var_refs: List[BoolRef], verbose: bool = False):
         s.add(Or(block))
         time = perf_counter()
         yield model
+    print("Time:", perf_counter() - time)
