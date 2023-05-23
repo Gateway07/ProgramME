@@ -2,8 +2,6 @@ from typing import List
 
 from z3 import *
 
-from Z3Util import get_models
-
 
 def sort_dot(n: int, in_vec: List = None) -> (BoolRef, List, List):
     """ Define constraints for array's sorting based on idea that [I] * [M] = [O], where I - input vector, M -
@@ -152,17 +150,3 @@ def sort_index(n: int, in_vec: List = None) -> (BoolRef, List, List):
     for e in out_vec:
         fs.append(in_counts[e] == out_counts[e])
     return And(fs), in_vec, out_vec
-
-
-if __name__ == "__main__":
-    vec = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 10, 9, 8, 7, -6, 5, 4, 3, 2, 1, 23, 43, 11, 1]
-    n = len(vec)
-    fs, in_vec, out_vec = sort_merge(n)  # _merge / _bubble / _dot / _index
-
-    check = [And(in_vec[j] == vec[j]) for j in range(n)]
-    #check = []
-    for m in get_models(And(fs, And(check)), out_vec, verbose=True):
-        print([m.eval(out_vec[j]) for j in range(n)])
-
-    fs1, in_vec, out_vec1 = sort_merge(n)
-    fs2, in_vec, out_vec = sort_dot(n, in_vec)
