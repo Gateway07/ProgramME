@@ -17,13 +17,14 @@ def get_models(F: BoolRef, var_refs: List[BoolRef], verbose: bool = False):
     s.add(F)
     if verbose:
         print(s.sexpr())
-        print(s.check())
 
     result = []
     time = perf_counter()
+    count = 0
     while s.check() == sat:
         model = s.model()
-        print("Time:", perf_counter() - time)
+        count += 1
+        print("\nSat time:", perf_counter() - time)
         if verbose:
             # print(sorted([(d, model[d]) for d in model], key=lambda x: str(x[0])))
             for d in model:
@@ -38,4 +39,6 @@ def get_models(F: BoolRef, var_refs: List[BoolRef], verbose: bool = False):
         s.add(Or(block))
         time = perf_counter()
         yield model
-    print("Time:", perf_counter() - time)
+    else:
+        if count == 0:
+            print("\n" + str(s.check()) + " time:", perf_counter() - time)

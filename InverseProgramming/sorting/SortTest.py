@@ -36,9 +36,14 @@ class SortTest(TestCase):
         n = 5
         fs1, in_vec, out_vec1 = self.functions[k](n)
         fs2, _, out_vec2 = self.functions[l](n, in_vec)
-        eq = [out_vec1[j] != out_vec2[j] for j in range(n)]
-        for _ in get_models(And(fs1, fs2, Or(eq)), []):
-            self.assertFalse(True, 'There is counterexample!')
+        not_eq = [out_vec1[j] != out_vec2[j] for j in range(n)]
+        for m in get_models(And(fs1, fs2, Or(not_eq)), []):
+            self.assertFalse(True, 'There is counterexample: {} which returning for {}: {} and for {}: {}'.format(
+                " ".join(str(m.eval(in_vec[j])) for j in range(n)),
+                str(self.functions[k]),
+                " ".join(str(m.eval(out_vec1[j])) for j in range(n)),
+                str(self.functions[l]),
+                " ".join(str(m.eval(out_vec2[j])) for j in range(n))))
         else:
             pass
 
