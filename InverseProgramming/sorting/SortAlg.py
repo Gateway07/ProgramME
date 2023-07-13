@@ -3,11 +3,10 @@ from typing import List
 from z3 import *
 
 
-def sort_dot(n: int, in_vec: List = None) -> (BoolRef, List, List):
+def sort_dot(n: int) -> (ExprRef, List, List):
     """ Define constraints for array's sorting based on idea that [I] * [M] = [O], where I - input vector, M -
     permutation matrix with 0 and 1, O - output sorted vector, * - dot vector's operation. """
-    if in_vec == None:
-        in_vec = [Int('x{}'.format(i)) for i in range(n)]
+    in_vec = [Int('x{}'.format(i)) for i in range(n)]
 
     matrix = []
     for row in range(n):
@@ -30,7 +29,7 @@ def sort_dot(n: int, in_vec: List = None) -> (BoolRef, List, List):
     return And(f), in_vec, out_vec
 
 
-def sort_bubble(n: int, in_vec: List = None) -> (BoolRef, List, List):
+def sort_bubble(n: int, sort: SortRef = IntSort()) -> (ExprRef, List, List):
     """ Define constraints for array's sorting based on classical bubble sort.  """
 
     def up(arr):
@@ -48,8 +47,7 @@ def sort_bubble(n: int, in_vec: List = None) -> (BoolRef, List, List):
             fs.append(c)
         return fs
 
-    if in_vec == None:
-        in_vec = [Int('x{}'.format(i)) for i in range(n)]
+    in_vec = [Const('x{}'.format(i), sort) for i in range(n)]
 
     fs = []  # list of assertions to be returned
     # recursive call to bubble_up
@@ -60,11 +58,11 @@ def sort_bubble(n: int, in_vec: List = None) -> (BoolRef, List, List):
     return And(fs), in_vec, out_vec
 
 
-def sort_merge(n: int, in_vec: List = None) -> (BoolRef, List, List):
+def sort_merge(n: int, sort: SortRef = IntSort()) -> (ExprRef, List, List):
     """ Define constraints for array's sorting based on classical sort by merging.  """
 
     def cmp2(x, y):
-        l, g = FreshInt(), FreshInt()
+        l, g = FreshConst(sort), FreshConst(sort)
         return [If(x <= y, And(l == x, g == y), And(l == y, g == x))], [l, g]
 
     def cmp3(x, y, z) -> (List, List):
@@ -120,26 +118,24 @@ def sort_merge(n: int, in_vec: List = None) -> (BoolRef, List, List):
 
         return fs, out_list
 
-    if in_vec == None:
-        in_vec = [Int('{}'.format(i)) for i in range(n)]
+    in_vec = [Int('{}'.format(i)) for i in range(n)]
 
     fs, out_vec = split(in_vec)
     fs.extend([out_vec[i] <= out_vec[i + 1] for i in range(n - 1)])
     return And(fs), in_vec, out_vec
 
 
-def sort_index(n: int, in_vec: List = None) -> (BoolRef, List, List):
+def sort_index(n: int, sort: SortRef = IntSort()) -> (ExprRef, List, List):
     """ Define constraints for array's sorting based on invariant that sorting value as index and its counts
     are the same before and after sorting!
     """
-    if in_vec == None:
-        in_vec = [FreshInt() for _ in range(n)]
-    in_counts = K(IntSort(), 0)
+    in_vec = [FreshConst(sort, "in") for _ in range(n)]
+    in_counts = K(sort, 0)
     for v in in_vec:
         in_counts = Store(in_counts, v, in_counts[v] + 1)
 
-    out_vec = [FreshInt() for _ in range(n)]
-    out_counts = K(IntSort(), 0)
+    out_vec = [FreshConst(sort, "out") for _ in range(n)]
+    out_counts = K(sort, 0)
     for v in out_vec:
         out_counts = Store(out_counts, v, out_counts[v] + 1)
 
@@ -152,19 +148,19 @@ def sort_index(n: int, in_vec: List = None) -> (BoolRef, List, List):
     return And(fs), in_vec, out_vec
 
 
-def sort_seq(n: int) -> (ExprRef, SeqRef, SeqRef):
+def sort_seq(n: int, sort: SortRef = IntSort()) -> (ExprRef, SeqRef, SeqRef):
     def cmp2(x: ArithRef, y: ArithRef) -> ExprRef:
         return If(x <= y, Concat(Unit(x), Unit(y)), Concat(Unit(y), Unit(x)))
 
     def tail(xs: SeqRef) -> ExprRef:
         return SubSeq(xs, 1, Length(xs) - 1)
 
-    seq_sort = SeqSort(IntSort())
+    seq_sort = SeqSort(sort)
 
     x, l, r = Ints('x l r')
     in_seq, out_seq, ls, rs, xs, ys = Consts('in out left right xs ys', seq_sort)
     split_fun = RecFunction('split', seq_sort, seq_sort)
-    merge_fun = RecFunction('merge', IntSort(), seq_sort, IntSort(), seq_sort, seq_sort)
+    merge_fun = RecFunction('merge', sort, seq_sort, sort, seq_sort, seq_sort)
 
     def merge(xs: SeqRef, ys: SeqRef):
         return merge_fun(xs[0], tail(xs), ys[0], tail(ys))
