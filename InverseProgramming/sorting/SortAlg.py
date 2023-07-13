@@ -150,3 +150,38 @@ def sort_index(n: int, in_vec: List = None) -> (BoolRef, List, List):
     for e in out_vec:
         fs.append(in_counts[e] == out_counts[e])
     return And(fs), in_vec, out_vec
+
+
+def sort_seq(n: int) -> (ExprRef, SeqRef, SeqRef):
+    def cmp2(x: ArithRef, y: ArithRef) -> ExprRef:
+        return If(x <= y, Concat(Unit(x), Unit(y)), Concat(Unit(y), Unit(x)))
+
+    def tail(xs: SeqRef) -> ExprRef:
+        return SubSeq(xs, 1, Length(xs) - 1)
+
+    seq_sort = SeqSort(IntSort())
+
+    x, l, r = Ints('x l r')
+    in_seq, out_seq, ls, rs, xs, ys = Consts('in out left right xs ys', seq_sort)
+    split_fun = RecFunction('split', seq_sort, seq_sort)
+    merge_fun = RecFunction('merge', IntSort(), seq_sort, IntSort(), seq_sort, seq_sort)
+
+    def merge(xs: SeqRef, ys: SeqRef):
+        return merge_fun(xs[0], tail(xs), ys[0], tail(ys))
+
+    RecAddDefinition(split_fun, [in_seq],
+                     If(Or(Length(in_seq) == 0, Length(in_seq) == 1), in_seq,
+                        If(Length(in_seq) == 2, cmp2(in_seq[0], in_seq[1]),
+                           merge(split_fun(SubSeq(in_seq, 0, Length(in_seq) / 2)),
+                                 split_fun(SubSeq(in_seq, Length(in_seq) / 2, Length(in_seq) - (Length(in_seq) / 2))))
+                           )))
+
+    RecAddDefinition(merge_fun, [l, ls, r, rs],
+                     If(And(Length(ls) == 0, Length(rs) == 0), cmp2(l, r),
+                        If(Length(ls) == 0, If(l <= r, Concat(Unit(l), Unit(r), rs), Concat(Unit(r), merge_fun(rs[0], tail(rs), l, ls))),
+                           If(Length(rs) == 0, If(r <= l, Concat(Unit(r), Unit(l), ls), Concat(Unit(l), merge_fun(ls[0], tail(ls), r, rs))),
+                              If(l <= r,
+                                 Concat(Unit(l), merge_fun(ls[0], tail(ls), r, rs)),
+                                 Concat(Unit(r), merge_fun(l, ls, rs[0], tail(rs))))))))
+
+    return out_seq == split_fun(in_seq), in_seq, out_seq
