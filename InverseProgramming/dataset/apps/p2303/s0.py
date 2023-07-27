@@ -1,0 +1,10 @@
+def main(s: str) -> str:
+    sLst = s.split()
+    reverseStr = ""
+
+    for i in range(len(sLst) - 1, -1, -1):
+        if i == (len(sLst) - 1):
+            reverseStr += sLst[i]
+        else:
+            reverseStr += (" " + sLst[i])
+    return reverseStr

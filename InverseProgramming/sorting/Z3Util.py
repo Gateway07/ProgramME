@@ -12,7 +12,7 @@ def to_smt2_string(f, status="unknown", name="", logic=""):
 def get_models(F: BoolRef, var_refs: List[BoolRef], verbose: bool = False):
     s = Solver()
     s.set(mbqi=True)
-    s.set(pull_nested_quantifiers=True)
+    # s.set(pull_nested_quantifiers=True)
 
     s.add(F)
     if verbose:
@@ -42,3 +42,20 @@ def get_models(F: BoolRef, var_refs: List[BoolRef], verbose: bool = False):
     else:
         if count == 0:
             print("\n" + str(s.check()) + " time:", perf_counter() - time)
+
+
+def _gen_smt(s: Solver, terms: List[ExprRef]):
+    time = perf_counter()
+    if s.check() != sat:
+        print("\nUnsat! Time:", perf_counter() - time)
+        return
+
+    m = s.model()
+    print("\nSat! Time:", perf_counter() - time)
+    yield m
+
+    s.add(Or([t != m.eval(t, model_completion=True) for t in terms]))
+
+
+def gen_smt(solver: Solver, terms: List[ExprRef]):
+    yield from _gen_smt(solver, terms)

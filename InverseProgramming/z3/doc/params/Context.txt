@@ -1,0 +1,23 @@
+proof 1 proof generation, it must be enabled when the Z3 context is created
+smtlib2_compliant 1 enable/disable SMT-LIB 2.0 compliance
+timeout 0 (default: infty) timeout in milliseconds.
+dump_models 1 dump models whenever check-sat returns sat
+model_validate 1 validate models produced by solvers
+model 1 model generation for solvers, this parameter can be overwritten when creating a solver
+debug_ref_count 1 debug support for AST reference counting
+encoding 4 string encoding used internally: unicode|bmp|ascii
+trace 1 trace generation for VCC
+trace_file_name 4 trace out file name (see option 'trace')
+well_sorted_check 1 type checker
+rlimit 0 default resource limit used for solvers. Unrestricted when set to 0.
+unsat_core 1 unsat-core generation for solvers, this parameter can be overwritten when creating a solver, not every solver in Z3 supports unsat core generation
+dot_proof_file 4 file in which to output graphical proofs
+type_check 1 type checker (alias for well_sorted_check)
+auto_config 1 use heuristics to automatically select solver and configure it
+stats 1 enable/disable statistics
+memory_max_alloc_count 0 set hard upper limit for memory allocations, if 0 then there is no limit
+memory_high_watermark 0 set high watermark for memory consumption (in bytes), if 0 then there is no limit
+memory_high_watermark_mb 0 set high watermark for memory consumption (in megabytes), if 0 then there is no limit
+verbose 0 be verbose, where the value is the verbosity level
+warning 1 enable/disable warning messages
+memory_max_size 0 set hard upper limit for memory consumption (in megabytes), if 0 then there is no limit

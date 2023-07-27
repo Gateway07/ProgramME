@@ -1,0 +1,2 @@
+input = [['the sky is blue'], ['  hello world  '], ['a good   example'], ['  Bob    Loves  Alice   '], ['Alice does not even like bob']]
+output = ['blue is sky the', 'world hello', 'example good a', 'Alice Loves Bob', 'bob like even not does Alice']
