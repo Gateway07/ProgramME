@@ -4,6 +4,10 @@ from typing import List
 from z3 import *
 
 
+def tail(xs: SeqRef) -> ExprRef:
+    return SubSeq(xs, 1, Length(xs) - 1)
+
+
 def to_smt2_string(f, status="unknown", name="", logic=""):
     v = (Ast * 0)()
     return Z3_benchmark_to_smtlib_string(f.ctx_ref(), name, logic, status, "", 0, v, f.as_ast())
