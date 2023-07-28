@@ -1,7 +1,8 @@
 from unittest import TestCase, main
 
+from z3.Z3Util import get_models, gen_smt
+
 from SortAlg import *
-from Z3Util import get_models, gen_smt
 
 
 def _to_check(vec: List, in_vec):
