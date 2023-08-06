@@ -2,12 +2,11 @@ import faulthandler
 import gc
 import glob
 import os
-import sys
 from os import path
+import sys
 from time import perf_counter
 
 from tqdm import tqdm
-
 
 def run(package: str, input_list, output_list):
     method_name = "main"
@@ -18,7 +17,7 @@ def run(package: str, input_list, output_list):
         module = __import__(package, fromlist=[method_name])
         method = getattr(module, method_name)  # get_attr second arg must be str
     except Exception as e:
-        results.append((-2, e, None, None))
+        results.append((False, e, None, None))
         return results
 
     for index, inputs in tqdm(enumerate(input_list), total=len(output_list), ncols=0, position=0, leave=True):
@@ -42,7 +41,6 @@ def run(package: str, input_list, output_list):
 
     return results
 
-
 def run_problem(problem_path: str):
     io_path = problem_path + "/input_output.py"
     if not path.exists(io_path):
@@ -57,19 +55,17 @@ def run_problem(problem_path: str):
     codes = sorted(glob.glob(problem_path + os.sep + 'py' + os.sep + '*.py'))
     for code_path in codes:
         parts = code_path.split(os.sep)
-        package = parts[-4] + "." + parts[-3] + "." + parts[-2] + "." + parts[-1].split('.')[0]
+        package = parts[-5] + "." + parts[-4] + "." + parts[-3] + "." + parts[-2] + "." + parts[-1].split('.')[0]
 
         fn = code_path.split(os.sep)[-1]
         code_no = fn.split('.')[0]
         start = perf_counter()
         results = run(package, local['input'], local['output'])
-        print("Code #", code_no, "took", perf_counter() - start, "sec")
+        print("Solution:", code_no, "took", perf_counter() - start, "sec")
 
         for r, e, i, o in results:
-            if r:
-                continue
-            print("Code:", code_path, ", error:", e, ", in/out:", i, '/', o)
-
+            if not r:
+                print("Solution:", code_no, ", error:", e, ", in/out:", i, '/', o)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

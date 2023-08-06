@@ -3,14 +3,22 @@ from typing import List
 
 from z3 import *
 
-from Z3.Utils import gen_smt
-
+from Z3.Utils import gen_smt, smt, val
 
 class Theory(ABC):
     """ Theory class is base interface for all SMT formula representations: Theory(X) -> Y, where X is input domain's and Y is output range's variables.
     Typical representation of the theory is the following idea:
     - the main theory as set of predicates realize general purpose of program,
     - the error and path theory are subset of main theory to specify range of input data as errors"""
+
+    def __int__(self):
+        range_sorts = [s.sort() for s in self.range()]
+        if len(range_sorts) > 1:
+            self.range_sort, mk_range, _ = TupleSort("Y", range_sorts)
+            self.range_result = mk_range(*self.range())
+        else:
+            self.range_sort = range_sorts[0]
+            self.range_result = self.range()[0]
 
     def name(self):
         return self.__class__.__name__
@@ -32,30 +40,18 @@ class Theory(ABC):
         s.add(self.formula())
         i = 0
         for arg in args:
-            v = None
-            if isinstance(arg, str):
-                v = StringVal(arg)
-            elif isinstance(arg, int):
-                v = IntVal(arg)
-            else:
-                v = BitVecVal(arg, 32)
-            s.add(self.domain()[i] == v)
+            s.add(self.domain()[i] == smt(arg))
             i += 0
 
         for name, arg in kwargs.items():
-            if isinstance(arg, str):
-                v = StringVal(arg)
-            elif isinstance(arg, int):
-                v = IntVal(arg)
-            else:
-                v = BitVecVal(arg, 32)
+            v = smt(arg)
             x = self._domain(name)
             if x is None:
                 x = self._range(name)
             s.add(x == v)
 
         for m in gen_smt(s, self.domain()):
-            solution = [m[x] for x in self.domain()] + [m[y] for y in self.range()]
+            solution = [val(m[x]) for x in self.domain()] + [val(m[y]) for y in self.range()]
             yield solution
 
     def _domain(self, name: str):

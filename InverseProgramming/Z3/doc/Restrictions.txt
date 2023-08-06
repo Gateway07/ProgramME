@@ -1,1 +1,2 @@
 1. Regular expression variables are not supported.
+2. Any property that needs induction will most likely lead z3 to give up and print unknown, or loop forever.

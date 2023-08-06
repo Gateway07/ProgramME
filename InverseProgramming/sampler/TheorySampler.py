@@ -3,7 +3,6 @@ from typing import List, Set, Tuple
 
 from z3 import *
 
-
 class GuidedSampler:
     smt_formula = None
     variables: List[Tuple[FuncDeclRef, ExprRef]] = []
@@ -162,8 +161,7 @@ class GuidedSampler:
         print("Sat/Unsat/Unk: ", self.sat_calls_count, "+", self.unsat_calls_count, "+", self.unknown_calls_count,
               "=", self.all_calls_count)
 
-
-def main():
+def main(smt_path: str):
     max_samples = 10
     max_time = 10.0
 
@@ -171,8 +169,7 @@ def main():
     set_param("parallel.enable", True)
     set_param("smt.random_seed", 1)
 
-    sampler = GuidedSampler(["timeout", 10000], "D:\\git\\SAT\\QF_AUFBV\\vehicle.smt2",
-                            max_samples, max_time)
+    sampler = GuidedSampler(["timeout", 10000], smt_path, max_samples, max_time)
 
     sampler.run()
     sampler.print_stats()
@@ -180,5 +177,5 @@ def main():
         line = ','.join([p.__str__() for p in s])
         print(line)
 
-
-main()
+if __name__ == "__main__":
+    main(sys.argv[1])

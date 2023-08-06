@@ -11,5 +11,7 @@ def main(s):
                 return -1
         else:
             return -1
-    else:
-        return -1
+
+    return -1
+
+print(main('[::|Python|::]'))
