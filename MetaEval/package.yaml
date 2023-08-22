@@ -46,7 +46,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - MetaEval
-    - pretty-simple
 
 tests:
   MetaEval-test:
@@ -58,4 +57,3 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - MetaEval
-    - pretty-simple
