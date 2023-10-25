@@ -3,7 +3,8 @@ package org.pme.example;
 public class GCD {
     int gcd(int a, int b) {
         assert a > 0 && b > 0; // Pre-condition
-
+        assert gcd(a, a) == a && gcd(b, b) == b;
+        
         int result = a, x = b, old = Math.max(result, x);
         while (result != x) { // Exit-condition
             // Invariant-condition
