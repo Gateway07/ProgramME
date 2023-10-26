@@ -1,4 +1,4 @@
-def main(s):
+def main(s: str) -> int:
     t_d = 0
     try:
         left = -1

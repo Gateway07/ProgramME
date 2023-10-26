@@ -38,10 +38,12 @@ class Theory(ABC):
     def __call__(self, *args, **kwargs):
         s = Solver()
         s.add(self.formula())
-        i = 0
-        for arg in args:
-            s.add(self.domain()[i] == smt(arg))
-            i += 0
+        frozen_vars = {}
+        for i in range(len(args)):
+            v = smt(args[i])
+            x = self.domain()[i]
+            s.add(x == v)
+            frozen_vars[x] = v
 
         for name, arg in kwargs.items():
             v = smt(arg)
@@ -49,8 +51,18 @@ class Theory(ABC):
             if x is None:
                 x = self._range(name)
             s.add(x == v)
+            frozen_vars[x] = v
 
-        for m in gen_smt(s, self.domain()):
+        variant_vars = []
+        for v in self.domain():
+            if v not in frozen_vars.keys():
+                variant_vars.append(v)
+
+        for v in self.range():
+            if v not in frozen_vars.keys():
+                variant_vars.append(v)
+
+        for m in gen_smt(s, variant_vars):
             solution = [val(m[x]) for x in self.domain()] + [val(m[y]) for y in self.range()]
             yield solution
 

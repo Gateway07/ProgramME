@@ -1,42 +1,34 @@
 from z3 import *
 
-# Subgraph, number of nodes and edges.
-# Nodes will be named implicitly from 0 to noOfNodesA - 1
-noOfNodesA = 3
-edgesA = [(0, 1)]
+#  cf. https://ericpony.github.io/z3py-tutorial/fixpoint-examples.htm
 
-# Supergraph:
-noOfNodesB = 3
-edgesB = [(1, 2)]
+fp = Fixedpoint()
+# fp.set(engine='datalog')
 
-# Mapping of subgraph nodes to supergraph nodes:
-mapping = Array('Map', IntSort(), IntSort())
+s, (n1, n2, n3, n4, n5, n6, n7) = EnumSort("Edges", [str(i + 1) for i in range(7)])
+edge = Function('edge', s, s, BoolSort())
+path = Function('path', s, s, BoolSort())
+a = Const('a', s)
+b = Const('b', s)
+c = Const('c', s)
 
-s = Solver()
+fp.register_relation(path, edge)
+fp.declare_var(a, b, c)
+fp.rule(path(a, b), edge(a, b))  # a path can be a single edge or
+fp.rule(path(a, c), [edge(a, b), path(b, c)])  # a combination of a path and an edge
 
-# Check that elt is between low and high, inclusive
-def InRange(elt, low, high):
-    return And(low <= elt, elt <= high)
+graph = {n1: [n2, n6, n7],
+         n2: [n3, n5],
+         n3: [n4, n5, n6],
+         n4: [n3],
+         n5: [n2, n3],
+         n6: [n3, n1]}
 
-# Check that (x, y) is in the list
-def Contains(x, y, lst):
-    return Or([And(x == x1, y == y1) for x1, y1 in lst])
+#  establish facts by enumerating the graph dictionary
+for i, (source, nodes) in enumerate(graph.items()):
+    for destination in nodes:
+        fp.fact(edge(source, destination))
 
-# Make sure mapping is into the supergraph
-s.add(And([InRange(Select(mapping, n1), 0, noOfNodesB - 1) for n1 in range(noOfNodesA)]))
-
-# Make sure we map nodes to distinct nodes
-s.add(Distinct([Select(mapping, n1) for n1 in range(noOfNodesA)]))
-
-# Make sure edges are preserved:
-for x, y in edgesA:
-    s.add(Contains(Select(mapping, x), Select(mapping, y), edgesB))
-
-# Solve:
-r = s.check()
-if r == sat:
-    m = s.model()
-    for x in range(noOfNodesA):
-        print("%s -> %s" % (x, m.evaluate(Select(mapping, x))))
-else:
-    print("Solver said: %s" % r)
+print("current set of rules:\n", fp)
+print(fp.query(path(n1, n4)), "yes, we can reach n4 from n1\n")
+print(fp.query(path(n7, n1)), "no, we cannot reach n1 from n7\n")

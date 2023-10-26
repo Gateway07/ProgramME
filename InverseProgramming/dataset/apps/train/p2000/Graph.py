@@ -3,98 +3,109 @@ from typing import List
 
 from z3 import *
 
-def main():
-    vertices = [0, 1, 2, 3, 4]
-    edges = [tuple(sorted(edge)) for edge in list(combinations(vertices, 2))]
+from Z3.Utils import gen_smt, smt
 
-    solver = Solver()
-
-    VertexSort = Datatype("VertexSort")
-    for vertex in vertices:
-        VertexSort.declare(str(vertex))
-    VertexSort = VertexSort.create()
-
-    vs = {}
-    for vertex in vertices:
-        vs[vertex] = getattr(VertexSort, str(vertex))
-
-    given = {}
-    directly_connected = {}
-    tc_connected = {}
-    graphs = {
-        "G": [(0, 1)],
-        "H": [(1, 3)],
-    }
-    for graph in graphs:
-        given[graph] = Function(f"{graph}_given", VertexSort, VertexSort, BoolSort())
-        directly_connected[graph] = Function(f"directly_connected_{graph}", VertexSort, VertexSort, BoolSort())
-        tc_connected[graph] = TransitiveClosure(directly_connected[graph])
-
-    solver.add(
-        tc_connected["G"](vs[0], vs[2]),  # graph G with edge (V0, V1) and the constraint "V0 is connected to V2"
-        tc_connected["H"](vs[2], vs[4]),  # graph H with edge (V1, V3) and the constraints "V2 is connected to V4", "V0 is not connected to V2"
-        Not(tc_connected["H"](vs[0], vs[2])),
-    )
-
-    in_solution = Function("in_solution", VertexSort, VertexSort, BoolSort())
-    for edge in edges:
-        # commutativity
-        solver.add(in_solution(vs[edge[0]], vs[edge[1]]) == in_solution(vs[edge[1]], vs[edge[0]]))
-        for graph in graphs:
-            # commutativity
-            solver.add(given[graph](vs[edge[0]], vs[edge[1]]) == given[graph](vs[edge[1]], vs[edge[0]]))
-            solver.add(directly_connected[graph](vs[edge[0]], vs[edge[1]]) == directly_connected[graph](vs[edge[1]], vs[edge[0]]))
-            # definition of direct connection
-            solver.add(directly_connected[graph](vs[edge[0]], vs[edge[1]]) == Or(
-                in_solution(vs[edge[0]], vs[edge[1]]), given[graph](vs[edge[0]], vs[edge[1]])))
-
-            if edge in graphs[graph]:
-                solver.add(given[graph](vs[edge[0]], vs[edge[1]]))
-            else:
-                solver.add(Not(given[graph](vs[edge[0]], vs[edge[1]])))
-
-    print(solver.check())
-    model = solver.model()
-    print(f"solution: {model[in_solution]}")
-
-def graph(vertexs: List, given: List):
+def graph(vertexes: List, given: List):
     dict = {(f, s): d for f, s, d in given}
-    all_edges = [(f, s, dict.get((f, s), 0)) for f, s in list(combinations(vertexs, 2))]
+    all_edges = [(f, s, dict.get((f, s), 0)) for f, s in list(combinations(vertexes, 2))]
+    if len(all_edges) == 0:
+        return None, None, None
 
-    input_con = Function("input_con", vertex_sort, vertex_sort, IntSort())
-    output_con = Function("output_con", vertex_sort, vertex_sort, BoolSort())
-    tc_con = TransitiveClosure(output_con)
+    vertex_sort = vertexes[0].sort()
+    dist_con = Function("dist_con", vertex_sort, vertex_sort, IntSort())
+    # tc_con = TransitiveClosure(dir_con)
+
+    a, b, fresh_var = Consts('a b c', vertex_sort)
+
+    d, d1, d2 = Ints('d d1 d2')
+    # seen = Const('seen', SetSort(vertex_sort))
+    dist_fun = RecFunction('dist_fun', vertex_sort, vertex_sort, vertex_sort, IntSort())
+    RecAddDefinition(dist_fun, [a, b, fresh_var],
+                     If(dist_con(a, b) > 0, dist_con(a, b),
+                        If(dist_con(a, fresh_var) > 0,
+                           dist_con(a, fresh_var) + dist_fun(fresh_var, b, FreshConst(vertex_sort)),
+                           0)))
 
     fs = []
-    sum_items = []
-    for f, s, d in all_edges:
-        fs.append(tc_con(f, s))  # connection between vertexs
-        fs.append(output_con(f, s) == output_con(s, f))  # commutativity connections
-        fs.append(input_con(f, s) == input_con(s, f))  # commutativity distances
-        fs.append(input_con(f, s) == d)
-        if d == 0:
-            fs.append(Not(output_con(f, s)))
+    for v in vertexes:
+        fs.append(dist_con(v, v) == 0)
 
-        sum_items.append(If(output_con(f, s), input_con(f, s), 0))
+    for f, s, dist in all_edges:
+        # fs.append(tc_con(f, s))  # connection between vertexs
+        fs.append(dist_con(f, s) == dist_con(s, f))  # commutativity distances
+        fs.append(dist_con(f, s) == dist)
 
-    dist = Int("dist")
-    fs.append(Sum(sum_items) == dist)
-    return And(fs), output_con, dist
+    return And(fs), dist_con, dist_fun
+
+def main(edges):
+    vertexes = smt((), max([s for s, _, _ in edges] + [e for _, e, _ in edges]) + 1)
+    vertex_sort = vertexes[0].sort()
+
+    ss = [tuple(sorted([s, e]) + [d]) for s, e, d in edges]
+    given_edges = [(vertexes[s], vertexes[e], d) for s, e, d in ss]
+    g, dist_con, dist_fun = graph(vertexes, given_edges)
+
+    x, y, t = Consts('x y t', vertexes[0].sort())
+    d = Int('d')
+
+    solver = Solver()
+    solver.add(g)
+    solver.add(d == 30, x != y, dist_fun(x, y, t) == d, x == vertexes[0])
+    if solver.check() == sat:
+        model = solver.model()
+        print(f"dist_con: {model[dist_con]}")
+        for m in gen_smt(solver, [x, y, d]):
+            print(f"Dist: {m[x]} -> ({m[t]}) -> {m[y]} = {m[d]}")
+    else:
+        print("Unsat!")
+
+def find_all_paths(graph, start, end, path=[]):
+    path = path + [start]
+    if start == end:
+        return [path]
+    if start not in graph:
+        return []
+
+    paths = []
+    for node in graph[start]:
+        if node not in path:
+            newpaths = find_all_paths(graph, node, end, path)
+            for newpath in newpaths:
+                paths.append(newpath)
+    return paths
+
+def min_path(graph, start, end):
+    paths = find_all_paths(graph, start, end)
+    mt = 10 ** 99
+    mpath = []
+    for path in paths:
+        t = sum(graph[i][j] for i, j in zip(path, path[1::]))
+        if t < mt:
+            mt = t
+            mpath = path
+
+    e1 = ' '.join('{} -> {} = {}'.format(i, j, graph[i][j]) for i, j in zip(mpath, mpath[1::]))
+    e2 = sum(graph[i][j] for i, j in zip(mpath, mpath[1::]))
+    print(f'Best path: {e1}, Total: {e2}\n')
+
+def calc(edges):
+    vs = set([s for s, _, _ in edges] + [e for _, e, _ in edges])
+    g = {i: {} for i in vs}
+    for s, e, d in edges:
+        g[s][e] = d
+        g[e][s] = d
+
+    paths = find_all_paths(g, 0, 4)
+    i = 1
+    for p in paths:
+        print(f'{i}: {p} = {sum(g[i][j] for i, j in zip(p, p[1::]))}')
+        i += 1
+
+    min_path(g, 0, 4)
 
 if __name__ == "__main__":
-    # main()
-    edges = [[1, 2, 25], [2, 3, 25], [3, 4, 20], [4, 5, 20], [5, 1, 20]]
+    edges = [[1, 2, 10], [2, 3, 20], [3, 4, 30], [4, 5, 40], [5, 1, 50]]
+    edges = [[s - 1, e - 1, d] for s, e, d in edges]
 
-    vertex_sort, v = EnumSort("Vertex", [str(i) for i in range(5)])
-
-    given_edges = [(v[0], v[1], 25), (v[1], v[2], 25), (v[2], v[3], 20), (v[3], v[4], 20), (v[0], v[4], 20)]
-    g, result, dist = graph(v, given_edges)
-
-    solver = Optimize()
-    solver.add(g)
-    solver.minimize(dist)
-
-    print(solver.check())
-    model = solver.model()
-    v = model[dist]
-    print(f"solution: {model[result]}, dist: {v}")
+    # main(edges)
+    calc(edges)

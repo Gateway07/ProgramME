@@ -5,6 +5,10 @@ from typing import List
 from z3 import *
 
 def val(expr: ExprRef):
+    if expr is None:
+        return None
+
+    expr = simplify(expr)
     if isinstance(expr, IntNumRef):
         return expr.as_long()
     if isinstance(expr, RatNumRef):
@@ -12,17 +16,15 @@ def val(expr: ExprRef):
     if isinstance(expr, BoolRef):
         return is_true(expr)
     if isinstance(expr, CharRef):
-        v = simplify(expr)
-        return chr(int(v.__str__()))
+        return chr(int(expr.__str__()))
 
     # composite type Seq
     if isinstance(expr, SeqRef):
-        s = simplify(expr)
-        if s.is_string_value():
-            return s.__str__()
+        if expr.is_string_value():
+            return expr.as_string()
 
         l = simplify(Length(expr)).as_long()
-        return [val(simplify(expr[i])) for i in range(l)]
+        return [val(expr[i]) for i in range(l)]
 
     if isinstance(expr, DatatypeRef):
         return int(expr.__str__())
@@ -45,12 +47,17 @@ def smt(val, sz: int = 0):
 
     # composite type Seq
     if isinstance(val, list) and len(val) > 0:
-        vs = [smt(v, sz) if isinstance(v, str) else Unit(smt(v, sz)) for v in val]
-        return Concat(vs)
+        vs = [Unit(smt(v, sz)) for v in val]
+        return vs[0] if len(vs) == 1 else Concat(vs)
 
-    if (isinstance(val, list) or isinstance(val, tuple)) and len(val) == 0 and sz > 0:
-        sort, vs = EnumSort("Enum", [str(i) for i in range(sz)])
-        return vs, sort
+    # composite type Enum
+    if isinstance(val, tuple) and len(val) == 0 and sz > 0:
+        _, vs = EnumSort(FreshConst(IntSort(), "Enum").__str__(), [str(i) for i in range(sz)])
+        return vs
+
+    # composite type Array
+    if isinstance(val, tuple) and len(val) == 1 and sz > 0:
+        return K(type_to_sort(list[0]), sz)
 
     raise AssertionError(f"Unknown value: {val}")
 
@@ -103,9 +110,6 @@ def to_smt2_string(f, status="unknown", name="", logic=""):
 
 def get_models(F: BoolRef, var_refs: List[BoolRef], verbose: bool = False):
     s = Solver()
-    s.set(mbqi=True)
-    # s.set(pull_nested_quantifiers=True)
-
     s.add(F)
     if verbose:
         print(s.sexpr())
@@ -160,8 +164,8 @@ def main():
     v = val(enum_expr)
     print(v)
 
-    enum_expr = smt(['ss111', 'ss222', 'ss333'])
-    v = val(enum_expr)
+    enum_expr = smt((), 5)
+    v = val(enum_expr[0])
     print(v)
 
 if __name__ == "__main__":
