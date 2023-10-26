@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.pme.Common.range;
 
 public class Max {
-    static <T extends Comparable> T max_one_way(T[] a) {
+    <T extends Comparable> T max_one_way(T[] a) {
         assert a != null && a.length > 1; // pre-condition
 
         int i = 0, old = a.length - i;
@@ -25,7 +25,7 @@ public class Max {
         return result;
     }
 
-    static <T extends Comparable> T max_two_way(T[] a) {
+    <T extends Comparable> T max_two_way(T[] a) {
         assert a != null && a.length > 1; // pre-condition
 
         int i = 0, j = a.length - 1, old = j - i;

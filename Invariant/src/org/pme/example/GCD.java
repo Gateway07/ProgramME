@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class GCD {
-    static int gcd(int a, int b) {
+    int gcd(int a, int b) {
         assert a > 0 && b > 0; // Pre-condition
         // assert gcd(a, a) == a && gcd(b, b) == b;
 
