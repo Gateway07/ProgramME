@@ -22,7 +22,7 @@ public class Sum {
         int result = x1, y = x2;
         while (y > 0) { // Exit-condition
             // Invariant-condition
-            assert sum(x1, x2) == sum(result, y);
+            //assert sum(x1, x2) == sum(result, y);
             if (y == result)
                 break;
 

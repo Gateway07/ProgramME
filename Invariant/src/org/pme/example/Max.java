@@ -1,9 +1,13 @@
 package org.pme.example;
 
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.pme.Common.range;
 
 public class Max {
-    public static <T extends Comparable> T max_one_way(T[] a) {
+    static <T extends Comparable> T max_one_way(T[] a) {
         assert a != null && a.length > 1; // pre-condition
 
         int i = 0, old = a.length - i;
@@ -21,7 +25,7 @@ public class Max {
         return result;
     }
 
-    public static <T extends Comparable> T max_two_way(T[] a) {
+    static <T extends Comparable> T max_two_way(T[] a) {
         assert a != null && a.length > 1; // pre-condition
 
         int i = 0, j = a.length - 1, old = j - i;
@@ -37,5 +41,13 @@ public class Max {
             old = next;
         }
         return a[i];
+    }
+
+    @Test
+    public void test() {
+        assertThrows(AssertionError.class, () -> max_one_way(new Integer[0]), (String) null); // pre-condition case
+
+        assertEquals(max_one_way(new Integer[]{1, 4, 3, 10, -2}), (Integer) 10);
+        assertEquals(max_two_way(new Integer[]{1, 4, 3, 10, -2}), (Integer) 10);
     }
 }
