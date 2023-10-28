@@ -2,6 +2,9 @@ package org.pme.example;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.random.RandomGenerator;
+import java.util.stream.IntStream;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -14,6 +17,14 @@ public class Sum {
         assertEquals(sum(1, 4), 1 + 4);  // odd case
         assertEquals(sum(3, 11), (3 + 11) / 2); // even case (with break)
         assertEquals(sum(11, 3), 14); // even case (when x1 > x2)
+
+        var gen = RandomGenerator.getDefault();
+        for (var x1 : gen.ints(10, 0, 100).toArray()) {
+            for (var x2 : IntStream.range(0, 10).toArray()) {
+                int result = sum(x1, x2);
+                assertEquals(x1 + x2, result + (x1 > x2 || x1 % 2 != x2 % 2 ? 0 : result));
+            }
+        }
     }
 
     int sum(int x1, int x2) {
@@ -31,7 +42,6 @@ public class Sum {
         }
         // post-condition
         assert x1 + x2 == result + y;
-        assert x1 + x2 == result + (x1 > x2 || x1 % 2 != x2 % 2 ? 0 : result);
         return result;
     }
 }

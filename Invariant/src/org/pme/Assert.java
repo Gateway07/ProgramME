@@ -6,7 +6,7 @@ public class Assert {
 
     public static void assertEquals(int i1, int i2) {
         if (i1 != i2)
-            throw new AssertionError("First argument {i1} is not equal second {i2}".formatted(i1, i2));
+            throw new AssertionError("First argument %s is not equal second %s".formatted(i1, i2));
 
     }
 
