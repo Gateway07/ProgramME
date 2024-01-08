@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="com.microsoft.z3">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/com.microsoft.z3.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../../../SAT/z3solver/src/api/java" />
+    </SOURCES>
+  </library>
+</component>
