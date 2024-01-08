@@ -5,11 +5,12 @@ import java.util.function.BooleanSupplier;
 import java.util.function.IntSupplier;
 
 public class Common {
+
     public static int[] range(int[] a, int start, int end) {
         return Arrays.copyOfRange(a, start, end);
     }
 
-    public static <T extends Comparable> T[] range(T[] a, int start, int end) {
+    public static <T extends Comparable<T>> T[] range(T[] a, int start, int end) {
         return Arrays.copyOfRange(a, start, end);
     }
 
@@ -17,7 +18,7 @@ public class Common {
         return Arrays.stream(a).max().getAsInt();
     }
 
-    public static <T extends Comparable> T max(T[] a) {
+    public static <T extends Comparable<T>> T max(T[] a) {
         return Arrays.stream(a).max(T::compareTo).get();
     }
 

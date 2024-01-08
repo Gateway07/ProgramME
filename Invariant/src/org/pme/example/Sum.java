@@ -1,39 +1,15 @@
 package org.pme.example;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.random.RandomGenerator;
-import java.util.stream.IntStream;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 @SuppressWarnings({"ReassignedVariable", "SuspiciousNameCombination"})
 public class Sum {
-    @Test
-    public void test() {
-        assertThrows(AssertionError.class, () -> sum(-1, 0), (String) null); // pre-condition case
 
-        assertEquals(sum(1, 4), 1 + 4);  // odd case
-        assertEquals(sum(3, 11), (3 + 11) / 2); // even case (with break)
-        assertEquals(sum(11, 3), 14); // even case (when x1 > x2)
-
-        var gen = RandomGenerator.getDefault();
-        for (var x1 : gen.ints(10, 0, 100).toArray()) {
-            for (var x2 : IntStream.range(0, 10).toArray()) {
-                int result = sum(x1, x2);
-                assertEquals(x1 + x2, result + (x1 > x2 || x1 % 2 != x2 % 2 ? 0 : result));
-            }
-        }
-    }
-
-    int sum(int x1, int x2) {
+    public int sum(int x1, int x2) {
         assert x1 >= 0 && x2 >= 0; // pre-condition
 
         int result = x1, y = x2;
         while (y > 0) { // Exit-condition
-            // Invariant-condition
-            //assert sum(x1, x2) == sum(result, y);
+            // Invariant: assert sum(x1, x2) == sum(result, y);
+            assert x1 + x2 == result + y;
             if (y == result)
                 break;
 
@@ -41,7 +17,25 @@ public class Sum {
             result++;
         }
         // post-condition
+        assert y == (x1 > x2 || x1 % 2 != x2 % 2 ? 0 : result);
         assert x1 + x2 == result + y;
         return result;
+    }
+
+    // Task - verification predicate
+    boolean f(int x, int a, int b) {
+        return sum(x, a) == b;
+    }
+
+    // Solution to the task - generation function
+    int g(int a, int b) {
+        return b - a; // x = b - a
+    }
+
+    void test() {
+        int a = 50000;
+        int b = 174653;
+
+        assert f(g(a, b), a, b);
     }
 }
