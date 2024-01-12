@@ -27,21 +27,8 @@ Note: xi ∈ Z and xi ≥ 0.
  */
 public class Knapsack {
     @Function
-    int dot(int a, int b) {
-        return a * b;
-    }
-
-    @Function
     float dot(float a, float b) {
         return a * b;
-    }
-
-    @Function
-    int dot(int[] a, int[] b) {
-        int s = 0;
-        for (int i = 0; i < Math.min(a.length, b.length); i++)
-            s += dot(a[i], b[i]);
-        return s;
     }
 
     @Function
@@ -60,9 +47,23 @@ public class Knapsack {
         return s;
     }
 
-    @Predicate
-    boolean isZeroOrOne(int[] vector, int length) {
-        if (vector.length != length)
+    @Function
+        // Axiom about simple multiplication
+    int dot(int a, int b) {
+        return a * b;
+    }
+
+    @Function // Axiom of scalar product
+    public int dot(int[] a, int[] b) {
+        int s = 0;
+        for (int i = 0; i < Math.min(a.length, b.length); i++)
+            s += dot(a[i], b[i]);
+        return s;
+    }
+
+    @Predicate // Axiom of vector [x1, .., xn] where xi ∈ {0, 1} & n = length
+    protected boolean isZeroOrOne(int[] vector, int length) {
+        if (length <= 0 || vector.length != length)
             return false;
 
         for (int e : vector)
@@ -71,9 +72,9 @@ public class Knapsack {
         return true;
     }
 
-    @Predicate
-    boolean isGeZero(int[] vector, int length) {
-        if (vector.length != length)
+    @Predicate // Axiom of vector [x1, .., xn] where xi ∈ Z & n = length
+    public boolean isGeZero(int[] vector, int length) {
+        if (length <= 0 || vector.length != length)
             return false;
 
         for (int e : vector)
@@ -83,31 +84,33 @@ public class Knapsack {
     }
 
     @Function("SELECT MAX(dot(?v, N.vector)) FROM ZeroOrOne AS N WHERE N.length = ?n AND dot(?w, N.vector) <= ?W")
-    int zeroOne(int[] w, int[] v, int n, int W) {
+    public int zeroOne(int[] w, int[] v, int n, int W) {
         int[] m = new int[W + 1];
         int[] s = new int[W + 1];
 
-        for (int ni = 0; ni < n; ni++)
+        for (int ni = 0; ni < n; ni++) {
             for (int wi = W; wi >= 0; wi--) {
                 if (w[ni] <= wi) {
                     var prevMax = m[wi - w[ni]];
                     if (m[wi] < prevMax + v[ni]) {
                         m[wi] = prevMax + v[ni];
+
                         s[wi] = ni + 1;
                     }
                 }
 
                 if (m[wi] > 0) {
                     var vector = new int[n];
-                    for (var i = W; i > 0; i -= w[s[i] - 1]) {
+                    for (var i = wi; i > 0; i -= w[s[i] - 1]) {
                         if (s[i] == 0)
                             break;
                         vector[s[i] - 1] = 1;
                     }
                     var maxValue = dot(v, vector);
-                    assert isZeroOrOne(vector, n) && dot(w, vector) <= W && maxValue == m[W];
+                    assert isGeZero(vector, n) && dot(w, vector) <= W && maxValue == m[wi];
                 }
             }
+        }
         return m[W];
     }
 
@@ -143,7 +146,7 @@ public class Knapsack {
 
     @Predicate
     boolean isJustOne(float[] vector, int length) {
-        if (vector.length != length)
+        if (length <= 0 || vector.length != length)
             return false;
 
         var found = 0;
@@ -203,26 +206,15 @@ public class Knapsack {
     public void test() {
         var ks = new Knapsack();
 
-        assert ks.zeroOne(new int[]{10, 20, 30}, new int[]{60, 100, 120}, 3, 50) == 220;
+        // vector = [
+        assert ks.zeroOne(new int[]{1, 1, 1, 1}, new int[]{1, 1, 1, 1}, 4, 3) == 3;
+        assert ks.zeroOne(new int[]{3, 4, 5}, new int[]{30, 50, 60}, 3, 8) == 90;
+
         assert ks.unbounded(new int[]{5, 10, 15}, new int[]{10, 30, 20}, 3, 100) == 300;
         assert ks.fractional(new float[]{6, 7, 9, 8}, new float[]{14, 27, 44, 19}, 4, 50) == 244.44444f;
+
+        // SELECT Weight.vector AS w, Profit.vector AS v, N.length AS n, N.upper AS max, dot(Weight.vector, N.vector) AS W
+        // FROM Bound AS N, GeZero AS Weight, GeZero AS Profit WHERE N.length = Weight.length AND N.length = Profit.length
         assert ks.bound(new int[]{2, 5, 2, 3, 4}, new int[]{2, 7, 1, 5, 3}, 5, 8, 2) == 12;
-    }
-
-    class Recursive {
-        private int[] w, v;
-
-        int k(int n, int b) {
-            if (n == 0 || b == 0)
-                return 0;
-
-            var i = n - 1;
-            if (w[i] > b)
-                return k(i, b);
-            // max{ v[i] + K(b − w[i]) | i ∈ [1..n] and 0 ≤ w[i] ≤ b }
-            return Math.max(
-                    v[i] + k(i, b - w[i]), // inductive hypothesis
-                    k(i, b));
-        }
     }
 }

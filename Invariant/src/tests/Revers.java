@@ -3,6 +3,8 @@ package tests;
 import org.junit.Test;
 
 public class Revers {
+
+
     Node mergeResult(Node node1, Node node2) {
         // Your code here
         Node start1 = node1;
