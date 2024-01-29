@@ -1,9 +1,7 @@
 from unittest import TestCase, main
 
-from z3.Z3Util import get_models, gen_smt
-
 from SortAlg import *
-
+from Z3.Utils import gen_smt, get_models
 
 def _to_check(vec: List, in_vec):
     if isinstance(in_vec, list):
@@ -12,13 +10,20 @@ def _to_check(vec: List, in_vec):
         return in_vec == Concat(*[Unit(IntVal(v)) for v in vec])
     raise AssertionError("Wrong type: " + type(in_vec))
 
-
 class SortTest(TestCase):
     def setUp(self):
         self.functions = [sort_merge, sort_bubble, sort_dot, sort_index, sort_seq]
 
     def tearDown(self):
         pass
+
+    def test_gen(self):
+        f, in_seq, out_seq = sort_seq(1)
+        s = Solver()
+        s.add([f, Length(in_seq) == 3])
+
+        for m in gen_smt(s, [in_seq, out_seq]):
+            print(m[in_seq], m[out_seq])
 
     def _sorting(self, i):
         vec = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 10, 9, 8, 7, -6, 5, 4, 3, 2, 1, 23, 43, 11, 1]
@@ -67,7 +72,6 @@ class SortTest(TestCase):
         self._equality(1, 2)
         self._equality(1, 3)
         self._equality(2, 3)
-
 
 if __name__ == '__main__':
     main()

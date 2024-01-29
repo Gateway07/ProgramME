@@ -139,7 +139,7 @@ def get_models(F: BoolRef, var_refs: List[BoolRef], verbose: bool = False):
         if count == 0:
             print("\n" + str(s.check()) + " time:", perf_counter() - time)
 
-def _gen_smt(s: Solver, terms: List[ExprRef], n: int):
+def _gen_smt(s, terms: List[ExprRef], n: int):
     i = 0
     while True:
         if 0 < n <= i:
@@ -156,7 +156,7 @@ def _gen_smt(s: Solver, terms: List[ExprRef], n: int):
 
         s.add(Or([t != m.eval(t, model_completion=True) for t in terms]))
 
-def gen_smt(solver: Solver, terms: List[ExprRef], n: int = 10):
+def gen_smt(solver, terms: List[ExprRef], n: int = 10):
     yield from _gen_smt(solver, terms, n)
 
 def main():

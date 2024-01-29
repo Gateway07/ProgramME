@@ -1,14 +1,14 @@
 package org.pme.example;
 
-import org.pme.Predicate;
+import org.pme.Axiom;
 
 public interface Sort {
-    @Predicate
+    @Axiom
     default boolean isGt(int a, int b) {
         return a > b;
     }
 
-    @Predicate
+    @Axiom
     default boolean isSorted(int[] arr) {
         for (int i = 0; i < arr.length; i++) {
             if (!isGt(arr[i], arr[i + 1]))

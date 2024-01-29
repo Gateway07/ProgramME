@@ -1,12 +1,11 @@
 package org.pme.example;
 
 import org.junit.Test;
-import org.pme.Function;
 import org.pme.T5;
 
 import java.util.ArrayList;
 
-public class KnapsackD2 {
+public class KnapsackD2 extends Knapsack {
     public static final int V_SUM_MAX = 1000;
     public static final int N_MAX = 100;
     public static final int W_MAX = 10000000;
@@ -47,7 +46,7 @@ public class KnapsackD2 {
         }
         return m[W];
     }
-    
+
     /*
     DP: Simple 1D array, say dp[W+1] can be used such that dp[i] stores the maximum value which can achieved using all items and i
     capacity of knapsack. Note that we use 1D array here which is different from classical knapsack where we used 2D array.
@@ -108,19 +107,6 @@ public class KnapsackD2 {
             }
         }
         return m[n][W];
-    }
-
-    @Function
-    int dot(int a, int b) {
-        return a * b;
-    }
-
-    @Function
-    int dot(int[] a, int[] b) {
-        int s = 0;
-        for (int i = 0; i < Math.min(a.length, b.length); i++)
-            s += dot(a[i], b[i]);
-        return s;
     }
 
     @Test

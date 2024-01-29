@@ -1,13 +1,13 @@
 package org.pme.example;
 
-import org.pme.Function;
-import org.pme.Predicate;
+import org.pme.Axiom;
+import org.pme.Spec;
 
 import java.util.Arrays;
 
 public class Array {
 
-    @Predicate
+    @Axiom
     boolean isSorted(int[] source, int[] target) {
         if (source.length != target.length)
             return false;
@@ -21,13 +21,13 @@ public class Array {
         return true;
     }
 
-    @Function("SELECT target FROM Sorted WHERE source = ?")
+    @Spec("SELECT target FROM Sorted WHERE source = ?")
     int[] getSorted(int[] source) {
         Arrays.sort(source);
         return source;
     }
 
-    @Predicate
+    @Axiom
     boolean isIn(int sub, int[] sequence, int start) {
         assert start >= 0;
         assert start <= sequence.length;
@@ -39,7 +39,7 @@ public class Array {
         return false;
     }
 
-    @Predicate
+    @Axiom
     boolean isIn(int[] sub, int[] sequence, int start) {
         assert sequence.length >= sub.length;
         assert start >= 0;
@@ -52,7 +52,7 @@ public class Array {
         return true;
     }
 
-    @Function("SELECT start FROM In WHERE sequence = ? AND sub = ?")
+    @Spec("SELECT start FROM In WHERE sequence = ? AND sub = ?")
     int indexOf(int[] value, int[] sub) {
         assert value.length >= sub.length;
 

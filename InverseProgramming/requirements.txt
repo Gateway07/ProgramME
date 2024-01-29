@@ -1,9 +1,3 @@
-Cython
 ipython
 #cvc5
 z3-solver
-torch
-pyext
-deepspeed
-transformers
-unittest

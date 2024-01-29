@@ -5,8 +5,8 @@ import com.microsoft.z3.IntExpr;
 import com.microsoft.z3.IntNum;
 import com.microsoft.z3.Solver;
 import org.junit.Test;
-import org.pme.Function;
-import org.pme.Predicate;
+import org.pme.Axiom;
+import org.pme.Spec;
 import org.pme.Utils;
 
 import java.util.ArrayList;
@@ -23,39 +23,39 @@ public class GCD {
         return a / gcd(a, b) * b;
     }
 
-    @Function()
+    @Axiom
     public int getReminder(int a, int b) {
         return a % b;
     }
 
-    @Predicate("FROM Reminder WHERE a = ? AND b = ? AND return = ?")
+    @Spec("FROM Reminder WHERE a = ? AND b = ? AND return = ?")
     boolean isReminder(int dividend, int factor, int reminder) {
         return dividend % factor == reminder;
     }
 
-    @Predicate
+    @Axiom
     boolean isDivisor(int dividend, int factor) {
         return dividend % factor == 0;
     }
 
-    @Predicate("FROM Divisor d1, Divisor d2 WHERE d1.factor = d2.factor " +
+    @Spec("FROM Divisor d1, Divisor d2 WHERE d1.factor = d2.factor " +
             "WHERE d1.factor = ? AND d1.dividend = ? AND d2.dividend = ?")
     boolean isCommonDivisor(int factor, int a, int b) {
         return isDivisor(a, factor) && isDivisor(b, factor);
     }
 
-    @Predicate("FROM Divisor d1, Divisor d2 WHERE d1.dividend = d2.dividend " +
+    @Spec("FROM Divisor d1, Divisor d2 WHERE d1.dividend = d2.dividend " +
             "WHERE d1.dividend = ? AND d1.factor = ? AND d2.factor = ?")
     boolean isCommonDividend(int dividend, int a, int b) {
         return isDivisor(dividend, a) && isDivisor(dividend, b);
     }
 
-    @Predicate("FROM Divisor WHERE dividend = 0")
+    @Spec("FROM Divisor WHERE dividend = 0")
     boolean isIfDividendZero(int factor) {
         return true;
     }
 
-    @Function("SELECT factor FROM CommonDivisor WHERE a = ? AND b = ?")
+    @Spec("SELECT factor FROM CommonDivisor WHERE a = ? AND b = ?")
     List<Integer> getCommonDivisors(int a, int b) {
         int greatest = gcd(a, b);
         var list = new ArrayList<Integer>();
@@ -72,12 +72,12 @@ public class GCD {
         return list;
     }
 
-    @Function("SELECT max(factor) FROM CommonDivisor WHERE a = ? AND b = ?")
+    @Spec("SELECT max(factor) FROM CommonDivisor WHERE a = ? AND b = ?")
     int getMaxDivisor(int a, int b) {
         return b == 0 ? a : getMaxDivisor(b, a % b);
     }
 
-    @Function("SELECT min(dividend) FROM CommonDividend WHERE a = ? AND b = ?")
+    @Spec("SELECT min(dividend) FROM CommonDividend WHERE a = ? AND b = ?")
     int getMinDividend(int a, int b) {
         return lcm(a, b);
     }

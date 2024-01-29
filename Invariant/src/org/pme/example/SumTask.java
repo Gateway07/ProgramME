@@ -1,16 +1,16 @@
 package org.pme.example;
 
 import org.junit.Test;
-import org.pme.Function;
-import org.pme.Predicate;
+import org.pme.Axiom;
+import org.pme.Spec;
 
 public class SumTask {
-    @Predicate
+    @Axiom
     boolean isSum(int a, int b, int sum) {
         return a + b == sum;
     }
 
-    @Function("SELECT a FROM Sum WHERE b = ? AND sum = ?")
+    @Spec("SELECT a FROM Sum WHERE b = ? AND sum = ?")
     int getA(int b, int sum) {
         return sum - b;
     }

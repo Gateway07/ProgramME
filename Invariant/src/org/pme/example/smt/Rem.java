@@ -5,7 +5,8 @@ import com.microsoft.z3.IntExpr;
 import com.microsoft.z3.IntNum;
 import com.microsoft.z3.Solver;
 import org.junit.Test;
-import org.pme.Utils;
+
+import static org.pme.Utils.gen;
 
 public class Rem {
     @Test // Test - to be generated as output
@@ -28,7 +29,7 @@ public class Rem {
         // ForAll dividend, factor (dividend % factor == (dividend +- factor) % factor)
 
         s.add(remIsZero, ctx.mkEq(dividend, ctx.mkInt(0)));
-        for (var m : Utils.gen(ctx, s, 10, dividend, factor)) {
+        for (var m : gen(ctx, s, 10, dividend, factor)) {
             var dividendInt = (IntNum) m.getConstInterp(dividend);
             var factorInt = (IntNum) m.getConstInterp(factor);
 
