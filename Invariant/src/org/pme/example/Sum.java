@@ -5,6 +5,10 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 @SuppressWarnings({"ReassignedVariable", "SuspiciousNameCombination"})
 public class Sum {
@@ -76,6 +80,13 @@ public class Sum {
     void test() {
         int a = 50000;
         int b = 174653;
+
+        Map<Boolean, List<String>> mapByBool = Stream.of("aa", "b", "c").collect(Collectors.groupingBy(e -> e.length() > 1));
+        Map<Integer, List<String>> mapByInt = Stream.of("aa", "b", "cc").collect(Collectors.groupingBy(e -> e.length()));
+        String reduceToString = Stream.of("a", "b", "c").collect(Collectors.joining(", ", "pref", "suff"));
+        Stream.of("a", "b", "c").spliterator();
+
+        IntStream is = IntStream.range(1, 3);
 
         assert f(g(a, b), a, b);
     }
