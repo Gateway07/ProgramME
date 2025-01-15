@@ -104,9 +104,12 @@ def sort_to_type(sort: SortRef) -> type:
 def tail(xs: SeqRef) -> ExprRef:
     return SubSeq(xs, 1, Length(xs) - 1)
 
-def to_smt2_string(f, status="unknown", name="", logic=""):
+def to_smt2_string(s, status="unknown", name="", logic=""):
     v = (Ast * 0)()
-    return Z3_benchmark_to_smtlib_string(f.ctx_ref(), name, logic, status, "", 0, v, f.as_ast())
+    return Z3_benchmark_to_smtlib_string(s.ctx_ref(), name, logic, status, "", 0, v, f.as_ast())
+
+def from_smt2_string(s, smt2_string):
+    return Z3_eval_smtlib2_string(s.ctx_ref, smt2_string)
 
 def get_models(F: BoolRef, var_refs: List[BoolRef], verbose: bool = False):
     s = Solver()

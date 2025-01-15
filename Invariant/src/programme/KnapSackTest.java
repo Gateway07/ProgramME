@@ -1,10 +1,10 @@
 package programme;
 
 import org.junit.Test;
-import org.pme.Spec;
+import org.pme.Operator;
 
 public class KnapSackTest {
-    @Spec("SELECT MAX(dot(?v, N.vector)) FROM ZeroOrOne AS N WHERE N.length = ?n AND dot(?w, N.vector) <= ?W")
+    @Operator("SELECT MAX(dot(?v, N.vector)) FROM ZeroOrOne AS N WHERE N.length = ?n AND dot(?w, N.vector) <= ?W")
     public int knapsackZeroOne(int[] w, int[] v, int n, int W) {
         int[] m = new int[W + 1];
 

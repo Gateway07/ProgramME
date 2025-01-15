@@ -1,7 +1,7 @@
 package org.pme.example.test;
 
 import org.junit.Test;
-import org.pme.Spec;
+import org.pme.Operator;
 import org.pme.T5;
 import org.pme.example.Knapsack;
 
@@ -10,7 +10,7 @@ import java.util.Random;
 
 public class KnapsackTest extends Knapsack {
 
-    @Spec("SELECT MAX(dot(?v, vector)) FROM ZeroOrOne WHERE length = ?n AND dot(?w, vector) <= ?W")
+    @Operator("SELECT MAX(dot(?v, vector)) FROM ZeroOrOne WHERE length = ?n AND dot(?w, vector) <= ?W")
     int getMaxByVector(int[] w, int[] v, int n, int W) {
         int max = 0;
         for (var vec : getVectors(n)) {
@@ -25,7 +25,7 @@ public class KnapsackTest extends Knapsack {
         return max;
     }
 
-    @Spec("SELECT WZ.vector AS w, VZ.vector AS v, N.length AS n, Z.value AS W, " +
+    @Operator("SELECT WZ.vector AS w, VZ.vector AS v, N.length AS n, Z.value AS W, " +
             "(SELECT MAX(dot(VZ.vector, vector)) FROM ZeroOrOne WHERE " +
             "length = VZ.length AND dot(WZ.vector, vector) <= Z.value) AS max " +
             "FROM ZeroOrOne AS N, GeZero AS WZ, GeZero AS VZ, Integer AS Z AS " +

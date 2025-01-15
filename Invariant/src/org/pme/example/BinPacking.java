@@ -1,12 +1,10 @@
 package org.pme.example;
 
-import org.pme.Axiom;
-import org.pme.Spec;
+import org.pme.Operator;
 
 import java.util.Arrays;
 
 public class BinPacking {
-    @Axiom
     boolean isPartition(final int[] items, final int[][] parts) {
         var target = new int[items.length];
         int i = 0, l = 0;
@@ -27,7 +25,6 @@ public class BinPacking {
         return true;
     }
 
-    @Axiom
     boolean isCapacity(int[] pack, int capacity) {
         var sum = 0;
         for (var p : pack)
@@ -35,7 +32,6 @@ public class BinPacking {
         return sum <= capacity;
     }
 
-    @Axiom
     boolean isPack(int[] items, int[][] packs, int capacity) {
         if (!isPartition(items, packs))
             return false;
@@ -47,7 +43,7 @@ public class BinPacking {
         return true;
     }
 
-    @Spec("SELECT MIN(COUNT(packs)) FROM Pack WHERE items = ? AND capacity = ?")
+    @Operator("SELECT MIN(COUNT(packs)) FROM Pack WHERE items = ? AND capacity = ?")
     int getBinPacking(int[] items, int capacity) {
         return 0;
     }

@@ -1,19 +1,17 @@
 package org.pme.example;
 
 import org.junit.Test;
-import org.pme.Axiom;
-import org.pme.Spec;
+import org.pme.Operator;
 
 import java.util.List;
 
 public class Sqrt {
 
-    @Axiom()
     boolean isSqrt(double a, double b) {
         return a * a == b;
     }
 
-    @Spec("SELECT a FROM Sqrt WHERE b = ?")
+    @Operator("SELECT a FROM Sqrt WHERE b = ?")
     Iterable<Double> getA(double b) {
         final double sqrt = Math.sqrt(b);
         return List.of(sqrt, -sqrt);

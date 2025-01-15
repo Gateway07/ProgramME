@@ -20,6 +20,6 @@ statement ::= select
     folding ::= MIN | MAX | SUM | COUNT
     unfolding ::= HEAD(list/map) | TAIL(list/map) | TABLE(list/map)
  */
-public @interface Spec {
+public @interface Operator {
     String value();
 }

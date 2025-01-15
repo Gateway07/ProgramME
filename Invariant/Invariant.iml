@@ -14,5 +14,9 @@
     <orderEntry type="library" name="pl.pragmatists.JUnitParams" level="project" />
     <orderEntry type="library" name="com.microsoft.z3" level="project" />
     <orderEntry type="library" name="google.guava" level="project" />
+    <orderEntry type="library" name="javatuples" level="project" />
+    <orderEntry type="library" name="springframework.data.spring.jpa" level="project" />
+    <orderEntry type="library" name="javax.persistence.api" level="project" />
+    <orderEntry type="library" name="springframework.boot.spring.starter.test" level="project" />
   </component>
 </module>

@@ -9,6 +9,7 @@ from typing import List
 
 from z3 import *
 
+import Z3.Utils
 from theory.Theory import Theory
 
 

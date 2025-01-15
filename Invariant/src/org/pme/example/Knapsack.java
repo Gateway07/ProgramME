@@ -2,8 +2,7 @@ package org.pme.example;
 
 import com.google.common.collect.Lists;
 import org.junit.Test;
-import org.pme.Axiom;
-import org.pme.Spec;
+import org.pme.Operator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,12 +30,10 @@ amount that could make up this quantity exactly.
 Note: xi ∈ Z and xi ≥ 0.
  */
 public class Knapsack {
-    @Axiom
     float dot(float a, float b) {
         return a * b;
     }
 
-    @Axiom
     float dot(float[] a, float[] b) {
         float s = 0;
         for (int i = 0; i < Math.min(a.length, b.length); i++)
@@ -44,7 +41,6 @@ public class Knapsack {
         return s;
     }
 
-    @Axiom
     int dot(int[][] a, int[][] b) {
         int s = 0;
         for (int i = 0; i < Math.min(a.length, b.length); i++)
@@ -52,13 +48,12 @@ public class Knapsack {
         return s;
     }
 
-    @Axiom
-        // Axiom about simple multiplication
+    // Atom about simple multiplication
     int dot(int a, int b) {
         return a * b;
     }
 
-    @Axiom // Axiom of scalar product
+    // Atom of scalar product
     public int dot(int[] a, int[] b) {
         int s = 0;
         for (int i = 0; i < Math.min(a.length, b.length); i++)
@@ -66,7 +61,7 @@ public class Knapsack {
         return s;
     }
 
-    @Axiom // Axiom of vector [x1, .., xn] where xi ∈ {0, 1} & n = length
+    // Atom of vector [x1, .., xn] where xi ∈ {0, 1} & n = length
     protected boolean isZeroOrOne(int[] vector, int length) {
         if (length <= 0 || vector == null || vector.length != length)
             return false;
@@ -77,7 +72,7 @@ public class Knapsack {
         return true;
     }
 
-    @Spec("SELECT vector FROM ZeroOrOne WHERE length = ?")
+    @Operator("SELECT vector FROM ZeroOrOne WHERE length = ?")
     protected Iterable<int[]> getVectors(int length) {
         List<Integer>[] domains = new List[length];
         var dom = Arrays.asList(1, 0);
@@ -95,7 +90,7 @@ public class Knapsack {
         return result;
     }
 
-    @Axiom // Axiom of vector [x1, .., xn] where xi ∈ Z & n = length
+    // Axiom of vector [x1, .., xn] where xi ∈ Z & n = length
     public boolean isGeZero(int[] vector, int length) {
         if (length <= 0 || vector.length != length)
             return false;
@@ -106,7 +101,7 @@ public class Knapsack {
         return true;
     }
 
-    @Spec("SELECT MAX(dot(?v, N.vector)) FROM ZeroOrOne AS N WHERE N.length = ?n AND dot(?w, N.vector) <= ?W")
+    @Operator("SELECT MAX(dot(?v, N.vector)) FROM ZeroOrOne AS N WHERE N.length = ?n AND dot(?w, N.vector) <= ?W")
     public int knapsackZeroOne(int[] w, int[] v, int n, int W) {
         int[] m = new int[W + 1];
         int[] s = new int[W + 1];
@@ -137,7 +132,7 @@ public class Knapsack {
         return m[W];
     }
 
-    @Spec("SELECT MAX(dot(?v, N.vector)) FROM GeZero AS N WHERE N.length = ?n AND dot(?w, N.vector) <= ?W")
+    @Operator("SELECT MAX(dot(?v, N.vector)) FROM GeZero AS N WHERE N.length = ?n AND dot(?w, N.vector) <= ?W")
     int unbounded(int[] w, int[] v, int n, int W) {
         int[] m = new int[W + 1];
         int[] s = new int[W + 1];
@@ -167,7 +162,7 @@ public class Knapsack {
         return m[W];
     }
 
-    @Spec("FROM vector WHERE COUNT(vector) = length AND (SELECT COUNT(*) FROM vector WHERE value > 0) = 1")
+    @Operator("FROM vector WHERE COUNT(vector) = length AND (SELECT COUNT(*) FROM vector WHERE value > 0) = 1")
     boolean isJustOne(float[] vector, int length) {
         if (length <= 0 || vector.length != length)
             return false;
@@ -184,7 +179,7 @@ public class Knapsack {
         return found == 1;
     }
 
-    @Spec("SELECT MAX(dot(?v, N.vector)) FROM JustOne AS N WHERE N.length = ?n AND dot(?w, N.vector) <= ?W")
+    @Operator("SELECT MAX(dot(?v, N.vector)) FROM JustOne AS N WHERE N.length = ?n AND dot(?w, N.vector) <= ?W")
     float fractional(float[] w, float[] v, int n, int W) {
         float maxPrice = Float.MIN_VALUE, maxValue = Float.MIN_VALUE;
         for (int i = 0; i < n; i++) {
@@ -203,7 +198,6 @@ public class Knapsack {
         return W * maxPrice;
     }
 
-    @Axiom
     boolean isBound(int[] vector, int length, int upper) {
         if (vector.length != length)
             return false;
@@ -214,7 +208,7 @@ public class Knapsack {
         return true;
     }
 
-    @Spec("SELECT MAX(dot(?v, N.vector)) FROM Bound AS N WHERE N.length = ?n AND N.upper = ?K AND dot(?w, N.vector) <= ?W")
+    @Operator("SELECT MAX(dot(?v, N.vector)) FROM Bound AS N WHERE N.length = ?n AND N.upper = ?K AND dot(?w, N.vector) <= ?W")
     int bound(int[] w, int[] v, int n, int W, int K) {
         int[] m = new int[W + 1];
 
@@ -225,7 +219,7 @@ public class Knapsack {
         return m[W];
     }
 
-    @Spec("SELECT MAX(dot(?v, N.vector)) FROM Bound AS N WHERE N.length = ?n AND N.upper = ?K AND dot(?w, N.vector) <= ?W")
+    @Operator("SELECT MAX(dot(?v, N.vector)) FROM Bound AS N WHERE N.length = ?n AND N.upper = ?K AND dot(?w, N.vector) <= ?W")
     int bound2D(int[] v, int[] w, int n, int W, int K) {
         int[][] m = new int[K + 1][W + 1];
 

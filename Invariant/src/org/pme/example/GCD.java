@@ -4,58 +4,46 @@ import com.microsoft.z3.Context;
 import com.microsoft.z3.IntExpr;
 import com.microsoft.z3.IntNum;
 import com.microsoft.z3.Solver;
+import org.javatuples.Triplet;
 import org.junit.Test;
-import org.pme.Axiom;
-import org.pme.Spec;
+import org.pme.Operator;
 import org.pme.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class GCD {
-    public int gcd(int a, int b) {
-        return b == 0 ? a : gcd(b, a % b);
+    public boolean isReminder(int reminder, int dividend, int factor) {
+        return reminder == (dividend % factor);
     }
 
-    public int lcm(int a, int b) {
-        return a / gcd(a, b) * b;
-    }
-
-    @Axiom
-    public int getReminder(int a, int b) {
-        return a % b;
-    }
-
-    @Spec("FROM Reminder WHERE a = ? AND b = ? AND return = ?")
-    boolean isReminder(int dividend, int factor, int reminder) {
-        return dividend % factor == reminder;
-    }
-
-    @Axiom
     boolean isDivisor(int dividend, int factor) {
         return dividend % factor == 0;
     }
 
-    @Spec("FROM Divisor d1, Divisor d2 WHERE d1.factor = d2.factor " +
-            "WHERE d1.factor = ? AND d1.dividend = ? AND d2.dividend = ?")
+    @Operator("SELECT factor, a, b FROM Divisor d1, Divisor d2 WHERE d1.factor = d2.factor")
     boolean isCommonDivisor(int factor, int a, int b) {
         return isDivisor(a, factor) && isDivisor(b, factor);
     }
+    Iterable<Triplet<Integer, Integer, Integer>> getCommonDivisor() {
+        throw new UnsupportedOperationException("Because of limitless"); }
 
-    @Spec("FROM Divisor d1, Divisor d2 WHERE d1.dividend = d2.dividend " +
-            "WHERE d1.dividend = ? AND d1.factor = ? AND d2.factor = ?")
+    @Operator("SELECT dividend, a, b FROM Divisor d1, Divisor d2 WHERE d1.dividend = d2.dividend")
     boolean isCommonDividend(int dividend, int a, int b) {
         return isDivisor(dividend, a) && isDivisor(dividend, b);
     }
+    Iterable<Triplet<Integer, Integer, Integer>> getCommonDividend() { throw new UnsupportedOperationException("Because of limitless"); }
 
-    @Spec("FROM Divisor WHERE dividend = 0")
+    @Operator("SELECT factor FROM Divisor WHERE dividend = 0") // It's always True
     boolean isIfDividendZero(int factor) {
         return true;
     }
+    Iterable<Integer> getIfDividendZero() { return null; }
 
-    @Spec("SELECT factor FROM CommonDivisor WHERE a = ? AND b = ?")
+    @Operator("SELECT factor FROM CommonDivisor WHERE a = :a AND b = :b")
     List<Integer> getCommonDivisors(int a, int b) {
         int greatest = gcd(a, b);
         var list = new ArrayList<Integer>();
@@ -72,17 +60,25 @@ public class GCD {
         return list;
     }
 
-    @Spec("SELECT max(factor) FROM CommonDivisor WHERE a = ? AND b = ?")
+    public int gcd(int a, int b) {
+        return b == 0 ? a : gcd(b, a % b);
+    }
+
+    public int lcm(int a, int b) {
+        return a / gcd(a, b) * b;
+    }
+
+    @Operator("SELECT MAX(factor) FROM CommonDivisor WHERE a = ? AND b = ?")
     int getMaxDivisor(int a, int b) {
         return b == 0 ? a : getMaxDivisor(b, a % b);
     }
 
-    @Spec("SELECT min(dividend) FROM CommonDividend WHERE a = ? AND b = ?")
+    @Operator("SELECT MIN(dividend) FROM CommonDividend WHERE a = ? AND b = ?")
     int getMinDividend(int a, int b) {
         return lcm(a, b);
     }
 
-    @Test // Test - to be generated as output
+    @Test
     public void testCommonDivisors() {
         for (var factor : getCommonDivisors(12, 18)) {
             assert isCommonDivisor(factor, 12, 18);
