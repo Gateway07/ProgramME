@@ -2,3 +2,4 @@ MetaEval/out/production/*/*.*
 MetaEval/out/test/*/*.*
 MetaEval/stack.yaml.lock
 MetaEval/src/*.hs_
+*/*/__pycache__/
