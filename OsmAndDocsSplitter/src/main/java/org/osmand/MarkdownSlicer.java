@@ -7,7 +7,7 @@ import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class MarkdownProcessor {
+public class MarkdownSlicer {
 
     public static void main(String[] args) {
         if (args.length < 2) {
@@ -69,8 +69,16 @@ public class MarkdownProcessor {
         reader.close();
     }
 
-    private static String toFileName(String name) {
-        return sanitize(name, "_") + ".md";
+    public static String replaceTillAllReplaced(String str, String target, String replacement) {
+        if (str == null || target == null || target.isEmpty() || replacement == null) {
+            return str; // Return the input string as-is for invalid inputs.
+        }
+
+        while (str.contains(target)) {
+            str = str.replace(target, replacement);
+        }
+
+        return str;
     }
 
     private static String sanitize(String name, String replacement) {
@@ -82,15 +90,47 @@ public class MarkdownProcessor {
                 .trim();
     }
 
-    private static void writeToFile(Path outputDir, Path relativePath, String fileName, String content, String topic) throws IOException {
-        if (content.length() - topic.length() <= 512)
-            return;
+    private static void writeToFile(Path outputDir, Path relativePath, String fileName, String answer, String topic) throws IOException {
+        String subject = replaceTillAllReplaced(trim(sanitize(topic, "-").replace(".", "").toLowerCase(), '-'), "--", "-");
+        String fn = fileName.substring(0, fileName.length() - 3);
+        String newFileName = (relativePath.toString().isEmpty() ? "" : sanitize(relativePath.toString(), ".") + '.') + fn + '.' + sanitize(topic, "_") + ".md";
+        String url = "https://osmand.net/docs/" + (relativePath.toString().isEmpty() ? "" : relativePath.toString().replace('\\', '/') + "/") + fn + "#" + subject;
 
-        Path outputPath = outputDir.resolve(relativePath).resolve(toFileName(topic));
+        String[] lines = topic.split("\n", 1);
+        String question = lines.length > 0 ? lines[0] : "";
+        subject = relativePath.toString().replace('\\', ' ') + " " + subject;
+        answer = "<ticket importance=\"Norm\">\n" +
+                "<subject>" + subject + "</subject>\n" +
+                "<question>" + trim(question, '#') + "?</question>\n" +
+                (subject.contains("purchase") ? "<category>Purchase</category>\n" : "") +
+                "<answer>" + answer.substring(question.length() + 5) +
+                "Please find more info by using URL: " + url + "</answer></ticket>";
+        Path outputPath = outputDir.resolve(outputDir).resolve(newFileName);
         Files.createDirectories(outputPath.getParent());
-        content += "\nURL: https://osmand.net/docs/user/" + relativePath.toString().replace('\\', '/') + "/" + fileName.substring(0, fileName.length() - 3) + "#" + sanitize(topic, "-").toLowerCase();
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath.toFile()))) {
-            writer.write(content);
+            writer.write(answer);
         }
+    }
+
+    public static String trim(String str, char prefixSuffix) {
+        if (str == null || str.isEmpty()) {
+            return str; // Return the string as-is if it's null or empty.
+        }
+
+        int start = 0;
+        int end = str.length() - 1;
+
+        // Move the start index forward to skip the prefixSuffix characters.
+        while (start <= end && str.charAt(start) == prefixSuffix) {
+            start++;
+        }
+
+        // Move the end index backward to skip the prefixSuffix characters.
+        while (end >= start && str.charAt(end) == prefixSuffix) {
+            end--;
+        }
+
+        // Return the trimmed substring.
+        return str.substring(start, end + 1);
     }
 }
