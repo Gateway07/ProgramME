@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# !/usr/bin/env python3
 import argparse
 import json
 import re
@@ -36,88 +36,85 @@ def sectionize_with_node(md_path: str) -> str:
     return out_path
 
 
+def serialize_node(node) -> str:
+    """
+    Recursively walk a BeautifulSoup node, emitting:
+      - raw text for NavigableString,
+      - '[text](href)' for <a href="...">text</a>,
+      - recursing into other Tags.
+    """
+    parts = []
+    for child in node.children:
+        if isinstance(child, NavigableString):
+            parts.append(str(child))
+        elif isinstance(child, Tag):
+            if child.name == 'a' and child.has_attr('href'):
+                text = child.get_text(strip=True)
+                href = child['href']
+                parts.append(f"[{text}]({href})")
+            else:
+                parts.append(serialize_node(child))
+    return ''.join(parts)
+
+
 def extract_sections(html_path: str):
-    """
-    Parse the HTML, iterate each <section> child in order,
-    flatten tables inline into Feature|Plan|Value triples,
-    and build a JSON list without changing the original order.
-    """
     raw = open(html_path, encoding='utf-8').read()
     soup = BeautifulSoup(raw, 'html.parser')
     entries = []
 
     for sec in soup.find_all('section'):
-        # 1. Determine slug and feature fallback header
+        # Build slug from first heading
         heading = sec.find(['h2', 'h3', 'h4'])
-        heading_text = heading.get_text(strip=True) if heading else ''
-        slug = f"{'#' * (2 if heading.name == 'h2' else 3)} {heading_text}" if heading else ''
 
+        section_id = sec.get('id') or (heading.get('id') if heading else '')
         lines = []
         for node in sec.children:
-            # a) Text nodes
+            # Skip nested sections
+            if isinstance(node, Tag) and node.name == 'section':
+                continue
+
+            # Text node
             if isinstance(node, NavigableString):
                 txt = node.strip()
                 if txt:
                     lines.append(txt)
                 continue
-            # 1) Skip nested <section> tags entirely
-            if isinstance(node, Tag) and node.name == 'section':
-                continue
 
-            # 2) Real HTML tables
+            # HTML tables
             if isinstance(node, Tag) and node.name == 'table':
-                # Extract headers, joining multi-line header cells with ' / '
-                header_cells = node.find_all('th')
-                headers = [
-                    th.get_text(separator=' / ', strip=True)
-                    for th in header_cells
-                ]
-                # If first header blank, use section heading as Feature label
-                key_header = headers[0] or heading_text
-                # Emit header triple only if meaningful
-                lines.append(f"{key_header} | Name | Value")
+                # headers
+                ths = node.find_all('th')
+                headers = [th.get_text(separator=' / ', strip=True) for th in ths]
+                key = headers[0]
+                lines.append(f"{key} | Name | Value")
 
-                # Process each data row
                 for tr in node.find_all('tr')[1:]:
                     cells = tr.find_all(['td', 'th'])
                     first = cells[0].get_text(strip=True) if cells else ''
-                    if not first:  # skip blank‑label rows (images/spacers)
+                    if not first:
                         continue
-
                     for idx, cell in enumerate(cells[1:], start=1):
                         plan = headers[idx]
-                        # Extract cell text, normalize check/dash
-                        val = cell.get_text(separator=' ', strip=True)
-                        if '✔' in val:
+                        raw_val = serialize_node(cell).strip()
+                        # normalize
+                        if '✔' in raw_val:
                             val = 'Yes'
-                        elif val in ('-', '—', '–'):
+                        elif raw_val.strip() in ('-', '—', '–'):
                             val = 'No'
-                        # If <details> present, capture summary + list items
-                        details = cell.find('details')
-                        if details:
-                            summary = details.find('summary').get_text(strip=True) if details.find('summary') else ''
-                            items = [li.get_text(strip=True) for li in details.find_all('li')]
-                            note = f"{summary} ({'; '.join(items)})" if items else summary
-                            val = note or val
-                        # If an <a> link exists, append its text in brackets
-                        a = cell.find('a')
-                        if a:
-                            link_text = a.get_text(strip=True)
-                            val = f"{val} [{link_text}]"
-
+                        else:
+                            val = raw_val
                         lines.append(f"{first} | {plan} | {val}")
                 continue
 
-            # c) Other tags (headings, paragraphs, lists)
+            # All other tags (headings, p, ul, etc.)
             if isinstance(node, Tag):
-                txt = node.get_text(separator='\n', strip=True)
+                txt = serialize_node(node).strip()
                 if txt:
                     lines.append(txt)
 
-        # Combine blocks, preserving interleaving
-        full_text = "\n\n".join(lines).strip()
-        if slug and full_text:
-            entries.append({"url": slug, "text": full_text})
+        full = "\n\n".join(lines).strip()
+        if section_id and full:
+            entries.append({"url": f"#{section_id}", "text": full})
 
     return entries
 
