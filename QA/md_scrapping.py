@@ -112,7 +112,7 @@ def extract_sections(html_path: str):
                 if txt:
                     lines.append(txt)
 
-        full = "\n\n".join(lines).strip()
+        full = "\n".join(lines).strip()
         if section_id and full:
             entries.append({"url": f"#{section_id}", "text": full})
 
