@@ -162,8 +162,10 @@ def unfold(sections):
 def categorize(toc: Dict[str, List[str]]) -> Dict[str, List]:
     zip_toc = {}
     for k, v in toc.items():
+        if len(v) == 0:
+            continue
         k = k.replace('-', ' ').replace('_', ' ')
-        zip_toc[k] = [re.sub(r'(?<! )-|-(?! )', ' ', s.replace('---', '-').replace('--', '/')) for s in v if len(s.split('-')) > 0]
+        zip_toc[k] = [re.sub(r'(?<! )-|-(?! )', ' ', s.replace('---', '-').replace('--', '/')) for s in v if len(s.split('-')) > 1]
     return zip_toc
 
 
