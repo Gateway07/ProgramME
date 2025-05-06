@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import List, Dict
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
@@ -147,16 +148,23 @@ def process(src_path, dest_path):
     print(f"Wrote {len(data)} top-level sections to {dest_path}")
 
 
-def collect_urls(sections):
-    urls = []
+def unfold(sections):
+    items = []
     for sec in sections:
-        # Add this section's url
-        urls.append(sec.get("url"))
+        items.append(sec)
         # Recurse into any nested list
         nested = sec.get("nested", [])
         if nested:
-            urls.extend(collect_urls(nested))
-    return urls
+            items.extend(unfold(nested))
+    return items
+
+
+def categorize(toc: Dict[str, List[str]]) -> Dict[str, List]:
+    zip_toc = {}
+    for k, v in toc.items():
+        k = k.replace('-', ' ').replace('_', ' ')
+        zip_toc[k] = [re.sub(r'(?<! )-|-(?! )', ' ', s.replace('---', '-').replace('--', '/')) for s in v if len(s.split('-')) > 0]
+    return zip_toc
 
 
 def main():
@@ -181,7 +189,7 @@ def main():
             process(src_path, dest_path.with_suffix('.json'))
             print(f"Processed {src_path} -> {dest_path}")
 
-    urls = []
+    table = {}
     toc = Path(output_dir, "toc.json")
     toc.unlink(missing_ok=True)
     for path in output_dir.rglob('*.json'):
@@ -189,10 +197,17 @@ def main():
             continue
 
         sections = json.loads(path.read_text(encoding="utf-8"))
-        urls.extend(collect_urls(sections))
+        path = f'{path.relative_to(output_dir).with_suffix('')}'
+        path = path.replace("\\", "/")
+
+        urls = table.get(path, [])
+        urls.extend([s.get("url") for s in unfold(sections)])
+        table[path] = urls
 
     with open(toc, 'w', encoding='utf-8') as f:
-        json.dump(urls, f, ensure_ascii=False, indent=2)
+        json.dump(table, f, ensure_ascii=False, indent=2)
+
+    print(categorize(table))
 
 
 if __name__ == '__main__':
