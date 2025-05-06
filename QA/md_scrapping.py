@@ -2,8 +2,10 @@
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import tempfile
+from pathlib import Path
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
@@ -57,80 +59,140 @@ def serialize_node(node) -> str:
     return ''.join(parts)
 
 
-def extract_sections(html_path: str):
+def process_section(sec: Tag) -> dict:
+    """
+    Build a dict for one <section>:
+      - url: '#'+id attribute of the section
+      - text: flattened content from immediate children
+      - nested: list of child sections (recursively)
+    """
+    # 1) Grab the section's own id (fallback to heading id)
+    heading = sec.find(['h2', 'h3', 'h4'])
+    section_id = sec.get('id') or (heading.get('id') if heading else '')
+
+    # 2) Flatten immediate children (skip nested <section>)
+    lines = []
+    for node in sec.children:
+        if isinstance(node, Tag) and node.name == 'section':
+            continue
+
+        if isinstance(node, NavigableString):
+            txt = node.strip()
+            if txt:
+                lines.append(txt)
+            continue
+
+        # HTML tables
+        if isinstance(node, Tag) and node.name == 'table':
+            ths = node.find_all('th')
+            headers = [th.get_text(separator=' / ', strip=True) for th in ths]
+            key = headers[0] if headers else ''
+            lines.append(f"{key} | Name | Value")
+
+            for tr in node.find_all('tr')[1:]:
+                cells = tr.find_all(['td', 'th'])
+                first = cells[0].get_text(strip=True) if cells else ''
+                if not first:
+                    continue
+                for idx, cell in enumerate(cells[1:], start=1):
+                    plan = headers[idx]
+                    raw_val = serialize_node(cell).strip()
+                    if '✔' in raw_val:
+                        val = 'Yes'
+                    elif raw_val.strip() in ('-', '—', '–'):
+                        val = 'No'
+                    else:
+                        val = raw_val
+                    lines.append(f"{first} | {plan} | {val}")
+            continue
+
+        # All other tags
+        if isinstance(node, Tag):
+            txt = serialize_node(node).strip()
+            if txt:
+                lines.append(txt)
+
+    full = "\n".join(lines).strip()
+
+    # 3) Recurse into direct child <section> nodes
+    nested = []
+    for child in sec.find_all('section', recursive=False):
+        nested.append(process_section(child))
+
+    return {"url": section_id, "text": full, "nested": nested}
+
+
+def extract_sections(html_path: str) -> list[dict]:
+    """
+    Parse the HTML, find only top-level <section> tags,
+    and return a list of nested section dicts.
+    """
     raw = open(html_path, encoding='utf-8').read()
     soup = BeautifulSoup(raw, 'html.parser')
-    entries = []
 
-    for sec in soup.find_all('section'):
-        # Build slug from first heading
-        heading = sec.find(['h2', 'h3', 'h4'])
+    # Only root sections (no section parent)
+    top_secs = [
+        sec for sec in soup.find_all('section')
+        if sec.find_parent('section') is None
+    ]
+    return [process_section(sec) for sec in top_secs]
 
-        section_id = sec.get('id') or (heading.get('id') if heading else '')
-        lines = []
-        for node in sec.children:
-            # Skip nested sections
-            if isinstance(node, Tag) and node.name == 'section':
-                continue
 
-            # Text node
-            if isinstance(node, NavigableString):
-                txt = node.strip()
-                if txt:
-                    lines.append(txt)
-                continue
+def process(src_path, dest_path):
+    prepped = preprocess(src_path)
+    html_path = sectionize_with_node(prepped)
+    data = extract_sections(html_path)
+    with open(dest_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    print(f"Wrote {len(data)} top-level sections to {dest_path}")
 
-            # HTML tables
-            if isinstance(node, Tag) and node.name == 'table':
-                # headers
-                ths = node.find_all('th')
-                headers = [th.get_text(separator=' / ', strip=True) for th in ths]
-                key = headers[0]
-                lines.append(f"{key} | Name | Value")
 
-                for tr in node.find_all('tr')[1:]:
-                    cells = tr.find_all(['td', 'th'])
-                    first = cells[0].get_text(strip=True) if cells else ''
-                    if not first:
-                        continue
-                    for idx, cell in enumerate(cells[1:], start=1):
-                        plan = headers[idx]
-                        raw_val = serialize_node(cell).strip()
-                        # normalize
-                        if '✔' in raw_val:
-                            val = 'Yes'
-                        elif raw_val.strip() in ('-', '—', '–'):
-                            val = 'No'
-                        else:
-                            val = raw_val
-                        lines.append(f"{first} | {plan} | {val}")
-                continue
-
-            # All other tags (headings, p, ul, etc.)
-            if isinstance(node, Tag):
-                txt = serialize_node(node).strip()
-                if txt:
-                    lines.append(txt)
-
-        full = "\n".join(lines).strip()
-        if section_id and full:
-            entries.append({"url": f"#{section_id}", "text": full})
-
-    return entries
+def collect_urls(sections):
+    urls = []
+    for sec in sections:
+        # Add this section's url
+        urls.append(sec.get("url"))
+        # Recurse into any nested list
+        nested = sec.get("nested", [])
+        if nested:
+            urls.extend(collect_urls(nested))
+    return urls
 
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('source', help="Source .md/.mdx")
-    p.add_argument('output', help="Output JSON file")
+    p.add_argument('source', help="Source MD directory")
+    p.add_argument('output', help="Output JSON directory")
     args = p.parse_args()
 
-    prepped = preprocess(args.source)
-    source_path = sectionize_with_node(prepped)
-    data = extract_sections(source_path)
-    with open(args.output, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    print(f"Wrote {len(data)} sections to {args.output}")
+    input_dir = Path(args.source)
+    output_dir = Path(args.output)
+    shutil.rmtree(output_dir, ignore_errors=True)
+    for src_path in input_dir.rglob('*.md'):
+        if src_path.is_file():
+            # Compute the relative path from input_dir,
+            # then append that to output_dir
+            rel_path = src_path.relative_to(input_dir)
+            dest_path = output_dir / rel_path
+
+            # Make sure the destination subdirectory exists
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+            process(src_path, dest_path.with_suffix('.json'))
+            print(f"Processed {src_path} -> {dest_path}")
+
+    urls = []
+    toc = Path(output_dir, "toc.json")
+    toc.unlink(missing_ok=True)
+    for path in output_dir.rglob('*.json'):
+        if not path.is_file():
+            continue
+
+        sections = json.loads(path.read_text(encoding="utf-8"))
+        urls.extend(collect_urls(sections))
+
+    with open(toc, 'w', encoding='utf-8') as f:
+        json.dump(urls, f, ensure_ascii=False, indent=2)
 
 
 if __name__ == '__main__':
