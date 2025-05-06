@@ -1,4 +1,5 @@
 import json
+import traceback
 
 import psycopg2
 
@@ -6,13 +7,12 @@ import psycopg2
 def process_items(cur, items, parent):
     for item in items:
         link = item['url']
-        # Insert this document
         cur.execute(
             """
-			INSERT INTO docs (link, text, parent)
-			VALUES (%s, %s, %s)
+			INSERT INTO docs (link, text, parent, path)
+			VALUES (%s, %s, %s, %s)
             """,
-            (link, item['text'], parent)
+            (link, item['text'], parent, item['path'])
         )
         # Recurse into nested children
         nested = item.get('nested', [])
@@ -32,8 +32,8 @@ def load_json(json_path, db_config):
                 # Process all documents
                 process_items(cur, data, 'root')
         print("Data loaded successfully.")
-    except Exception as e:
-        print(f"Error loading data: {e}")
+    except Exception:
+        print(traceback.format_exc())
     finally:
         conn.close()
 
