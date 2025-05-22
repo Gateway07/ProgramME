@@ -7,6 +7,9 @@ import psycopg2
 def process_items(cur, items, parent):
     for item in items:
         link = item['url']
+        if link == parent:
+            continue
+            
         cur.execute(
             """
 			INSERT INTO docs (link, text, parent, path)

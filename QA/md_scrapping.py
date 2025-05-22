@@ -157,7 +157,7 @@ def main():
     output_dir = Path(args.output)
     shutil.rmtree(output_dir, ignore_errors=True)
     for src_path in input_dir.rglob('*.md'):
-        if src_path.is_file():
+        if src_path.is_file() and src_path.name != "index.md":
             # Compute the relative path from input_dir,
             # then append that to output_dir
             rel_path = src_path.relative_to(input_dir)
