@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Chat Processor (JS)</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden; /* Prevent body scroll */
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            /* margin: 20px; */ /* Removed to allow full height */
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+            display: flex; /* Added for flex layout */
+            flex-direction: column; /* Added for flex layout */
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto; /* Keep horizontal centering, adjust vertical margin if needed */
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex; /* Added for flex layout */
+            flex-direction: column; /* Added for flex layout */
+            flex-grow: 1; /* Allow container to grow */
+            overflow: hidden; /* Prevent container from causing body scroll */
+            height: calc(100% - 40px); /* Adjust based on body margin or use 100vh if no body margin */
+        }
+
+        h1 {
+            color: #007bff;
+            text-align: center;
+            margin-bottom: 20px;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        input[type="file"] {
+            display: block;
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 25px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        h2 {
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        button {
+            flex-shrink: 0; /* Prevent shrinking */
+            margin-bottom: 5px; /* Add some space below buttons */
+        }
+
+        #output { /* This is the textarea */
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 5px; /* Adjusted from 15px */
+            background-color: #f9f9f9;
+            /* min-height: 150px; */ /* Let flexbox handle height */
+            border-radius: 4px;
+            flex-grow: 1; /* Allow textarea to take available space */
+            overflow-y: auto; /* Ensure textarea scrolls */
+            /* Styles below are less relevant for a textarea or handled by its default styles or inline styles */
+            /* white-space: pre-wrap; */
+            /* word-wrap: break-word; */
+            /* max-height: 70vh; */ /* Control height with rows attribute or specific CSS if needed */
+            /* overflow-y: auto; */
+            /* font-family: 'Courier New', Courier, monospace; */
+            /* font-size: 0.9em; */
+        }
+
+        /* .message-block styling is no longer needed */
+        /*
+        .message-block {
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        .message-block:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        */
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Telegram Chat Processor</h1>
+
+    <label for="jsonFile">Select your <code>result.json</code> file:</label>
+    <input type="file" id="jsonFile" accept=".json">
+
+    <h2>Processed Output:</h2>
+    <button id="copyButton">Copy</button>
+    <button id="saveButton">Save</button>
+    <textarea id="output" rows="10" style="width: 100%; box-sizing: border-box;" readonly>Select a file above to see the processed messages.</textarea>
+</div>
+
+<script>
+    let allMessages = {};
+
+    // Global dictionary to store messages by ID
+    function messageToText(message) {
+        if (typeof message.text === 'string') {
+            messageTextContent = message.text;
+        } else if (Array.isArray(message.text)) {
+            messageTextContent = message.text.map(item => {
+                if (typeof item === 'string') {
+                    return item;
+                } else if (item && typeof item.text === 'string') { // Check if item itself and item.text are valid
+                    return item.text;
+                }
+                return ''; // Fallback for malformed or unexpected array items
+            }).join('');
+        } else if (message.text === null || message.text === undefined) {
+            messageTextContent = ''; // Explicitly handle null or undefined text
+        } else {
+            console.warn("Message text is of an unexpected type:", message.text, "Message ID:", message.id);
+            messageTextContent = '';
+        }
+        return messageTextContent;
+    }
+
+    // Processes a group of messages that belong to the same user and are close in time
+    function processMessageGroupJs(messageGroup) {
+        if (!messageGroup || messageGroup.length === 0) {
+            return null;
+        }
+
+        const firstMessage = messageGroup[0];
+        const username = firstMessage.from || "Unknown User";
+
+        // Reply info is taken from the first message of the group
+        const replyToMessageId = firstMessage.reply_to_message_id;
+        let replyToTag = "";
+
+        if (replyToMessageId) {
+            const repliedMessageObj = allMessages[replyToMessageId];
+            if (repliedMessageObj) { // Check if it exists in our cache
+                const repliedTextEscaped = messageToText(repliedMessageObj);
+                const repliedUser = repliedMessageObj.from || "Unknown User";
+                replyToTag = `\n  <reply_to_message user="${repliedUser}">${repliedTextEscaped}</reply_to_message>`;
+            }
+        }
+
+        // Concatenate texts from all messages in the group
+        const combinedTextContent = messageGroup.map(msg => messageToText(msg)).join('\n');
+
+        const messageBlock = `<message user="${username}">${replyToTag}\n${combinedTextContent}\n</message>`;
+        return messageBlock;
+    }
+
+    // New function to format a whole thread, including merging messages
+    function formatThread(messagesInThread) {
+        if (!messagesInThread || messagesInThread.length === 0) return "";
+
+        let threadOutput = "";
+        const threadStartDateFormatted = new Date(messagesInThread[0].date).toLocaleTimeString("en-US", {
+            hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+        });
+        threadOutput += `  <thread time="${threadStartDateFormatted}">\n`;
+
+        let i = 0;
+        while (i < messagesInThread.length) {
+            let currentMessageGroup = [messagesInThread[i]];
+            let lastMessageInGroup = messagesInThread[i];
+            i++;
+
+            // Continue adding to currentMessageGroup if same user, within 30s, and not a new reply
+            while (i < messagesInThread.length) {
+                const nextMessage = messagesInThread[i];
+                const timeDiffSeconds = (new Date(nextMessage.date).getTime() - new Date(lastMessageInGroup.date).getTime()) / 1000;
+
+                if (nextMessage.from !== lastMessageInGroup.from ||
+                    timeDiffSeconds >= 45 ||
+                    nextMessage.reply_to_message_id) { // A new reply always breaks the group
+                    break;
+                }
+                currentMessageGroup.push(nextMessage);
+                lastMessageInGroup = nextMessage;
+                i++;
+            }
+
+            const processedMessageBlock = processMessageGroupJs(currentMessageGroup);
+            if (processedMessageBlock) {
+                const indentedMessageBlock = processedMessageBlock.split('\n').map(line => `    ${line}`).join('\n');
+                threadOutput += indentedMessageBlock + "\n";
+            }
+        }
+        threadOutput += `  </thread>\n`;
+        return threadOutput;
+    }
+
+    document.getElementById('jsonFile').addEventListener('change', function (event) {
+        const file = event.target.files[0];
+        const outputDiv = document.getElementById('output');
+
+        if (!file) {
+            outputDiv.value = 'No file selected.';
+            return;
+        }
+
+        outputDiv.value = 'Processing...';
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            try {
+                const fileContent = e.target.result;
+                if (!fileContent) {
+                    outputDiv.value = 'Error: File is empty or could not be read.';
+                    return;
+                }
+                const data = JSON.parse(fileContent);
+
+                allMessages = {}; // Reset for each new file load
+                if (data && Array.isArray(data.messages)) {
+                    // First pass: populate allMessages dictionary
+                    data.messages.forEach(msg => {
+                        if (msg && msg.id && msg.type === "message") {
+                            allMessages[msg.id] = msg;
+                        }
+                    });
+
+                    // Filter valid messages and sort them by date
+                    const validMessages = data.messages
+                        .filter(m => m && m.type === "message" && m.date && messageToText(m));
+
+                    let chatOutput = "<chat>\n";
+
+                    if (validMessages.length > 0) {
+                        let currentSegmentForThread = []; // Messages being collected for the current thread
+
+                        for (const message of validMessages) {
+                            // If currentSegmentForThread is not empty, and the gap to the new message is too large for the current thread,
+                            // finalize the current thread.
+                            if (currentSegmentForThread.length > 0 &&
+                                (new Date(message.date).getTime() - new Date(currentSegmentForThread[currentSegmentForThread.length - 1].date).getTime()) / 1000 > 60 * 5) {
+                                chatOutput += formatThread(currentSegmentForThread); // Process the segment as a thread
+                                currentSegmentForThread = []; // Start a new segment for a new thread
+                            }
+                            currentSegmentForThread.push(message);
+                        }
+
+                        // Process any remaining messages in the last segment as a thread
+                        if (currentSegmentForThread.length > 0) {
+                            chatOutput += formatThread(currentSegmentForThread);
+                        }
+
+                    } else {
+                        // No valid messages found
+                        outputDiv.value = '<chat>\n</chat>'; // Output empty chat
+                        return; // Exit early
+                    }
+
+                    chatOutput += "</chat>";
+                    outputDiv.value = chatOutput;
+
+                } else {
+                    outputDiv.value = 'Error: Data is not in the expected format or no messages array found.';
+                }
+            } catch (err) {
+                console.error("Error processing file:", err);
+                outputDiv.value = `Error parsing JSON file: ${err.message}. Check console for more details.`;
+            }
+        };
+
+        reader.onerror = function (err) {
+            console.error("FileReader error:", err);
+            outputDiv.value = 'Error reading file. See browser console for details.';
+        };
+
+        reader.readAsText(file);
+    });
+
+    document.getElementById('copyButton').addEventListener('click', function () {
+        const outputTextarea = document.getElementById('output');
+        outputTextarea.select();
+        document.execCommand('copy');
+        // Optionally, provide some feedback to the user, e.g., alert('Copied to clipboard!');
+    });
+
+    document.getElementById('saveButton').addEventListener('click', function () {
+        const outputTextarea = document.getElementById('output');
+        const textToSave = outputTextarea.value;
+        const blob = new Blob([textToSave], {type: 'text/plain'});
+        const a = document.createElement('a');
+        a.download = 'processed_chat.txt';
+        a.href = URL.createObjectURL(blob);
+        a.click();
+        URL.revokeObjectURL(a.href); // Clean up
+        // Optionally, provide some feedback to the user, e.g., alert('Saved!');
+    });
+</script>
+</body>
+</html>
