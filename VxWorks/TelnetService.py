@@ -35,7 +35,7 @@ def ping_host(host):
         return True
 
 
-def get_data_block(tn_connection, address):
+def get_data_block(tn_connection, address) -> str:
     """Sends the command to read a memory block and returns the raw hex data string."""
     command = f"data {address}\r\n".encode('utf-8')
     tn_connection.write(command)
@@ -48,7 +48,7 @@ def get_data_block(tn_connection, address):
         # Return the hex string with spaces removed
         return match.group(1).replace(" ", "")
 
-    return Exception(f"ERROR: Could not find 'data = ' in response {output_str} for address {address}.")
+    raise Exception(f"ERROR: Could not find 'data = ' in response {output_str} for address {address}.")
 
 
 def parse_data_block(hex_data: str, variables_in_block: Dict[str, Tuple[str, int, int]]):
@@ -82,7 +82,7 @@ def parse_data_block(hex_data: str, variables_in_block: Dict[str, Tuple[str, int
     return results
 
 
-def get_variable_value(tn, variable_address, variable_dict: Dict[str, Tuple[int, str, int]]) -> Dict[str, int | float | bool]:
+def get_variable_value(tn, variable_address, variable_dict: Dict[str, Tuple[str, int, int]]) -> Dict[str, int | float | bool]:
     output = get_data_block(tn, variable_address)
     print(output)
 
