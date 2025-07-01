@@ -6,10 +6,8 @@ import telnetlib
 from typing import Dict, Tuple
 
 # --- Configuration ---
-TELNET_HOST = "192.168.1.240"
-TELNET_PORT = 4000
 TELNET_PROMPT = b"$>"
-CONNECTION_TIMEOUT = 10
+CONNECTION_TIMEOUT = 5
 
 
 def ping_host(host):
@@ -30,10 +28,8 @@ def ping_host(host):
     try:
         response = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if response.returncode == 0:
-            print(f"Host {host} is reachable.")
             return True
         else:
-            print(f"Host {host} is UNREACHABLE.")
             return False
     except FileNotFoundError:
         return True
@@ -41,9 +37,9 @@ def ping_host(host):
 
 def get_data_block(tn_connection, address):
     """Sends the command to read a memory block and returns the raw hex data string."""
-    command = f"data {address}\n".encode('utf-8')
+    command = f"data {address}\r\n".encode('utf-8')
     tn_connection.write(command)
-    output_bytes = tn_connection.read_until(TELNET_PROMPT)
+    output_bytes = tn_connection.read_until(TELNET_PROMPT, CONNECTION_TIMEOUT)
     output_str = output_bytes.decode('utf-8', errors='ignore')
 
     # Regex to find the line "data = aa bb cc dd ..." and capture the hex part
@@ -69,7 +65,7 @@ def parse_data_block(hex_data, variables_in_block):
         return results
 
     # For each variable defined for this memory block...
-    for var_name, (offset, var_type, size) in variables_in_block.items():
+    for var_name, (var_type, offset, size) in variables_in_block.items():
         # Ensure we don't try to read past the end of the data we received
         if offset + size > len(data_bytes):
             print(f"Warning: Not enough data to read '{var_name}'. Block size is {len(data_bytes)}, needed {offset + size}.")
@@ -93,13 +89,13 @@ def get_variable_value(tn, variable_address, variable_dict: Dict[str, Tuple[int,
     return parse_data_block(output, variable_dict)
 
 
-def get_values(variables: Dict[str, dict]) -> Exception | None | Dict[str, int | float | bool | str]:
-    if not ping_host(TELNET_HOST):
+def get_values(host: Tuple[str: int], variables: Dict[str, dict]) -> Exception | None | Dict[str, int | float | bool | str]:
+    if not ping_host(host[0]):
         return None
 
     tn = None
     try:
-        tn = telnetlib.Telnet(TELNET_HOST, TELNET_PORT, timeout=CONNECTION_TIMEOUT)
+        tn = telnetlib.Telnet(host[0], host[1], timeout=CONNECTION_TIMEOUT)
         tn.read_until(TELNET_PROMPT)
 
         print(f"Telnet is ready.")
@@ -117,7 +113,7 @@ def get_values(variables: Dict[str, dict]) -> Exception | None | Dict[str, int |
 
 
 if __name__ == "__main__":
-    vars = {'05810a51':
+    vars = {'00fe0b27':
         {
             "system.do_TempOutZone1": ('>f', 0, 4),
             "system.do_TempOutZone2": ('>f', 4, 4),
@@ -128,7 +124,7 @@ if __name__ == "__main__":
         }
     }
 
-    values = get_values(vars)
+    values = get_values(("192.168.1.241", 4000), vars)
     if values is None:
         print("Host is not available.")
     elif isinstance(values, dict):
