@@ -51,7 +51,7 @@ def get_data_block(tn_connection, address):
     return Exception(f"ERROR: Could not find 'data = ' in response {output_str} for address {address}.")
 
 
-def parse_data_block(hex_data, variables_in_block):
+def parse_data_block(hex_data: str, variables_in_block: Dict[str, Tuple[str, int, int]]):
     """Parses a raw hex string and extracts all variable values based on the memory map."""
     results = {}
     if not hex_data:
@@ -68,7 +68,7 @@ def parse_data_block(hex_data, variables_in_block):
     for var_name, (var_type, offset, size) in variables_in_block.items():
         # Ensure we don't try to read past the end of the data we received
         if offset + size > len(data_bytes):
-            print(f"Warning: Not enough data to read '{var_name}'. Block size is {len(data_bytes)}, needed {offset + size}.")
+            results[var_name] = None
             continue
 
         # Slice the byte array to get the bytes for this specific variable
@@ -123,6 +123,7 @@ if __name__ == "__main__":
             "system.sv_OilTemp": ('>f', 28, 4),
         }
     }
+    # print(parse_data_block("41ac000041a6666741ac000041ad999a", vars['00fe0b27']))
 
     values = get_values(("192.168.1.241", 4000), vars)
     if values is None:
