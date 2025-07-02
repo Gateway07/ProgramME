@@ -4,23 +4,23 @@ This document outlines the features to be developed for the backend and frontend
 
 ## Backend (FastAPI)
 
-1. **Host API**:
-    - `GET /api/hosts`: Create an endpoint to retrieve all hosts from the database.
+Establish a connection to the PostgreSQL database using the schema defined in `schema.md`.
 
-2. **values API**:
-    - `GET /api/hosts/{host_id}/values`: Create an endpoint to retrieve variables for a specific host, including pagination, sorting, and filtering
-      capabilities.
+1. **Host API**: `GET /api/hosts`: Create an endpoint to retrieve all hosts from the database.
+
+2. **values API**: `GET /api/hosts/{host_id}/values`: Create an endpoint to retrieve variables for a specific host, including pagination, sorting, and filtering
+   capabilities.
 
 3. **Data Refresh API**:
     - `GET /api/hosts/{host_id}/refresh`: Create an endpoint to trigger a data refresh for a single host by calling `TelnetService.py` and updating the
       database.
     - `GET /api/hosts/refresh`: Create an endpoint to trigger a data refresh for all hosts.
 
-4. **Database Integration**:
-    - Establish a connection to the PostgreSQL database using the schema defined in `schema.md`.
+4. **Status API**: `GET /api/hosts/{host_id}/status`: Create an endpoint to retrieve the status of a specific host based on latest (by created field) row from
+   the "vals" table. If "status" = 0 and "created" > 5 minutes from now then status = 1 (expired) else 0 (alive and connected), if status = -1 then
+   disconnected.
 
-5. **Service Integration**:
-    - Integrate `TelnetService.py` to fetch live data from the injection molding machines.
+5. **Service Integration**: Integrate `TelnetService.py` to fetch live data from the injection molding machines.
 
 # Frontend (React.js)
 
@@ -49,7 +49,7 @@ _______________________________
 
 - Create an area to display all hosts by using Host API based on sketched main page layout.
 - Hosts view should be represented as tree: Firm -> Model -> Id.
-- Every leaf should include: number based on "id" field, status icon (0 - green, -1 - red, 1 - yellow) based on "status" field from Host API.
+- Every leaf should include: number based on "id" field, status icon (0 - green, -1 - red, 1 - yellow) based on "status" field from Status API.
 - "Refresh" button (on top of view) should call `GET /api/hosts/{host_id}/refresh` API to update the selected host item.
 - "Refresh All" button (on top of view) should call `GET /api/hosts/refresh` API to update the all hosts.
 - Refresh calls should be made in blocked manner with indicator to show host by host refresh progress.
@@ -60,6 +60,7 @@ _______________________________
 - Add a legend to each bar to indicate the values of variables.
 - The view should include 6 bars (per variable) and coordinate grid with scaling within the view.
 - Ensure the view should be refreshed if selected row in Values (history) table is changed.
+- If value is None it means missing value and should be represented as empty bar.
 
 ### 3. Values (history) view:
 

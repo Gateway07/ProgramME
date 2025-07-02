@@ -22,7 +22,7 @@ class Vals(SQLModel, table=True):
     sv_tempzone4: Optional[float] = None
     sv_tempzone5: Optional[float] = None
     sv_oiltemp: Optional[float] = None
-    status: int
+    status: int = 0
     error: Optional[str] = None
     created: datetime = Field(default_factory=datetime.utcnow)
     host: int = Field(foreign_key="host.id")

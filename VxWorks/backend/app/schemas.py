@@ -44,6 +44,11 @@ class ValueRow(BaseModel):
         from_attributes = True
 
 
+class HostStatus(BaseModel):
+    """Response schema for a host's status."""
+    status: int
+
+
 class PagedValues(BaseModel):
     values: list[ValueRow]
     total_pages: int
