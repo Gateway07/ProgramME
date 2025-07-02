@@ -11,7 +11,7 @@ Establish a connection to the PostgreSQL database using the schema defined in `s
 2. **values API**: `GET /api/hosts/{host_id}/values`: Create an endpoint to retrieve variables for a specific host, including pagination, sorting, and filtering
    capabilities.
 
-3. **Data Refresh API**:
+3. **Data Refresh API**. Ensure all refresh calls should be synchronicity:
     - `GET /api/hosts/{host_id}/refresh`: Create an endpoint to trigger a data refresh for a single host by calling `TelnetService.py` and updating the
       database.
     - `GET /api/hosts/refresh`: Create an endpoint to trigger a data refresh for all hosts.

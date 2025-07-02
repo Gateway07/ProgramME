@@ -2,10 +2,12 @@ import React, {useCallback, useEffect, useState} from 'react';
 import api from '../api';
 import {Host} from '../types';
 import StatusIcon from './StatusIcon';
+import {VscRefresh} from 'react-icons/vsc';
 
 interface HostsViewProps {
     onHostSelect: (id: number | null) => void;
     selectedHostId: number | null;
+    onRefreshHost: (hostId: number) => Promise<void>;
 }
 
 // Helper to group hosts into a tree structure
@@ -34,12 +36,13 @@ const groupHosts = (hosts: Host[]) => {
     return grouped;
 };
 
-const HostsView: React.FC<HostsViewProps> = ({onHostSelect, selectedHostId}) => {
+const HostsView: React.FC<HostsViewProps> = ({onHostSelect, selectedHostId, onRefreshHost}) => {
     const [hosts, setHosts] = useState<Host[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+    const [refreshingHostId, setRefreshingHostId] = useState<number | null>(null);
 
     const toggleNode = (key: string) => {
         setExpandedNodes(prev => ({...prev, [key]: !prev[key]}));
@@ -47,6 +50,11 @@ const HostsView: React.FC<HostsViewProps> = ({onHostSelect, selectedHostId}) => 
 
     const handleSelectHost = (id: number) => {
         onHostSelect(id);
+    };
+
+    const handleRefreshClick = (e: React.MouseEvent, hostId: number) => {
+        e.stopPropagation();
+        handleRefresh(hostId);
     };
 
     // Fetches the status for a single host
@@ -92,9 +100,9 @@ const HostsView: React.FC<HostsViewProps> = ({onHostSelect, selectedHostId}) => 
 
     // Refreshes a single selected host
     const handleRefresh = async (hostId: number) => {
-        setRefreshing(true);
+        setRefreshingHostId(hostId);
         try {
-            await api.get(`/hosts/${hostId}/refresh`);
+            await onRefreshHost(hostId);
             const newStatus = await fetchHostStatus(hostId);
             setHosts(prevHosts =>
                 prevHosts.map(h => h.id === hostId ? {...h, status: newStatus} : h)
@@ -102,7 +110,7 @@ const HostsView: React.FC<HostsViewProps> = ({onHostSelect, selectedHostId}) => 
         } catch (err) {
             setError(`Failed to refresh host ${hostId}.`);
         } finally {
-            setRefreshing(false);
+            setRefreshingHostId(null);
         }
     };
 
@@ -127,13 +135,6 @@ const HostsView: React.FC<HostsViewProps> = ({onHostSelect, selectedHostId}) => 
     return (
         <div>
             <div style={{marginBottom: '10px'}}>
-                <button
-                    className="embossed-button"
-                    onClick={() => selectedHostId && handleRefresh(selectedHostId)}
-                    disabled={!selectedHostId || refreshing}
-                >
-                    {refreshing ? 'Refreshing...' : 'Обновить'}
-                </button>
                 <button className="embossed-button" onClick={handleRefreshAll} disabled={refreshing}>
                     {refreshing ? 'Refreshing All...' : 'Все'}
                 </button>
@@ -172,6 +173,14 @@ const HostsView: React.FC<HostsViewProps> = ({onHostSelect, selectedHostId}) => 
                                                                         className={`tree-item ${selectedHostId === host.id ? 'selected' : ''}`}>
                                                                         <StatusIcon status={host.status ?? -2}/>
                                                                         <span className="label">{host.id}</span>
+                                                                        <button
+                                                                            className="refresh-button"
+                                                                            onClick={(e) => handleRefreshClick(e, host.id)}
+                                                                            disabled={refreshingHostId !== null}
+                                                                        >
+                                                                            <VscRefresh
+                                                                                className={refreshingHostId === host.id ? 'refreshing' : ''}/>
+                                                                        </button>
                                                                     </div>
                                                                 ))}
                                                             </div>

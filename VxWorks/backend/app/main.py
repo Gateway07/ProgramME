@@ -97,33 +97,32 @@ async def list_values(
     return PagedValues(values=values_rows, total_pages=total_pages, current_page=page, )
 
 
-async def _refresh_host(host, session: Annotated[Session, Depends(get_session)]):
+def refresh_host(host, session: Annotated[Session, Depends(get_session)]):
     if host is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Host not found")
 
-    # TODO fetch variable list per host dynamically
-    result = await fetch_values((host.ip, host.port), host.var_address_1)
+    result = fetch_values((host.ip, host.port), host.var_address_1)
     if result is None:
         vals = Vals(host=host.id, error="Machine unreachable", status=-1)
     elif isinstance(result, Exception):
         vals = Vals(host=host.id, error=str(result), status=-1)
     else:
-        vals = Vals(host=host.id, **result)
-
+        vals = Vals(host=host.id, values=result)
     session.add(vals)
     session.commit()
-    return {"status": "ok"}
+    session.refresh(vals)
+    return vals
 
 
 @app.get("/api/hosts/{host_id}/refresh")
-async def refresh_host(host_id: int, session: Annotated[Session, Depends(get_session)]):
+def refresh_host_endpoint(host_id: int, session: Annotated[Session, Depends(get_session)]):
     host = session.get(Host, host_id)
-    return _refresh_host(host, session)
+    return refresh_host(host, session)
 
 
 @app.get("/api/hosts/refresh")
-async def refresh_all(session: Annotated[Session, Depends(get_session)]):
+def refresh_all_hosts(session: Annotated[Session, Depends(get_session)]):
     hosts = session.exec(select(Host)).all()
     for host in hosts:
-        await _refresh_host(host, session)
+        refresh_host(host, session)
     return {"status": "ok"}
