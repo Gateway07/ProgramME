@@ -62,7 +62,10 @@ const HostsView: React.FC<HostsViewProps> = ({ onHostSelect, selectedHostId }) =
     try {
       const hostsResponse = await api.get<Host[]>('/hosts');
       const hostsData = hostsResponse.data;
-      
+
+      // Sort hosts by ID
+      hostsData.sort((a, b) => a.id - b.id);
+
       const hostsWithStatus = await Promise.all(
         hostsData.map(async (host) => {
           try {
@@ -121,54 +124,44 @@ const HostsView: React.FC<HostsViewProps> = ({ onHostSelect, selectedHostId }) =
   if (loading) return <div>Loading hosts...</div>;
   if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
-  const treeItemStyle: React.CSSProperties = {
-    padding: '5px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    fontFamily: 'Arial, sans-serif',
-    fontSize: '16px',
-  };
-
-  const selectedTreeItemStyle: React.CSSProperties = {
-    ...treeItemStyle,
-    backgroundColor: '#d3d3d3',
-    fontWeight: 'bold',
-  };
-
   return (
     <div>
       <div style={{ marginBottom: '10px' }}>
-        <button 
-          onClick={() => selectedHostId && handleRefresh(selectedHostId)} 
+        <button
+          className="embossed-button"
+          onClick={() => selectedHostId && handleRefresh(selectedHostId)}
           disabled={!selectedHostId || refreshing}
         >
           {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
-        <button onClick={handleRefreshAll} disabled={refreshing} style={{ marginLeft: '5px' }}>
+        <button className="embossed-button" onClick={handleRefreshAll} disabled={refreshing}>
           {refreshing ? 'Refreshing All...' : 'Refresh All'}
         </button>
       </div>
       <h2>Hosts</h2>
       <div style={{ marginTop: '10px' }}>
-        {Object.entries(groupedHosts).map(([firm, models]) => {
+        {Object.entries(groupedHosts)
+          .sort(([firmA], [firmB]) => firmA.localeCompare(firmB))
+          .map(([firm, models]) => {
             const isFirmExpanded = !!expandedNodes[firm];
             return (
                 <div key={firm}>
-                    <div style={treeItemStyle} onClick={() => toggleNode(firm)}>
-                        <span style={{ width: '20px' }}>{isFirmExpanded ? '▼' : '►'}</span>
-                        {firm}
+                    <div className="tree-item" onClick={() => toggleNode(firm)}>
+                        <span className="icon">{isFirmExpanded ? '▼' : '►'}</span>
+                        <span className="label">{firm}</span>
                     </div>
                     {isFirmExpanded && (
                         <div style={{ marginLeft: '20px' }}>
-                            {Object.entries(models).map(([model, hostList]) => {
+                            {Object.entries(models)
+                              .sort(([modelA], [modelB]) => modelA.localeCompare(modelB))
+                              .map(([model, hostList]) => {
                                 const modelKey = `${firm}-${model}`;
                                 const isModelExpanded = !!expandedNodes[modelKey];
                                 return (
                                     <div key={model}>
-                                        <div style={treeItemStyle} onClick={() => toggleNode(modelKey)}>
-                                            <span style={{ width: '20px' }}>{isModelExpanded ? '▼' : '►'}</span>
-                                            {model}
+                                        <div className="tree-item" onClick={() => toggleNode(modelKey)}>
+                                            <span className="icon">{isModelExpanded ? '▼' : '►'}</span>
+                                            <span className="label">{model}</span>
                                         </div>
                                         {isModelExpanded && (
                                             <div style={{ marginLeft: '20px' }}>
@@ -176,14 +169,9 @@ const HostsView: React.FC<HostsViewProps> = ({ onHostSelect, selectedHostId }) =
                                                     <div
                                                         key={host.id}
                                                         onClick={() => handleSelectHost(host.id)}
-                                                        style={
-                                                            selectedHostId === host.id
-                                                                ? selectedTreeItemStyle
-                                                                : treeItemStyle
-                                                        }
-                                                    >
+                                                        className={`tree-item ${selectedHostId === host.id ? 'selected' : ''}`}>
                                                         <StatusIcon status={host.status ?? -2} />
-                                                        <span style={{ marginLeft: '8px' }}>{host.ip}</span>
+                                                        <span className="label">{host.id}</span>
                                                     </div>
                                                 ))}
                                             </div>

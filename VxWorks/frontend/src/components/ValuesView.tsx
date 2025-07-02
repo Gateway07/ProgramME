@@ -60,7 +60,9 @@ const ValuesView: React.FC<ValuesViewProps> = ({ selectedHostId, onRowSelect }) 
   if (error) return <div style={{ color: 'red' }}>{error}</div>;
   if (!data || data.values.length === 0) return <div>No data available for this host.</div>;
 
-  const headers = Object.keys(data.values[0] || {});
+  const headers = Object.keys(data.values[0] || {}).filter(
+    (header) => !['id', 'host', 'status', 'error'].includes(header)
+  );
 
   return (
     <div>

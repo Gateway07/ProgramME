@@ -70,7 +70,7 @@ async def list_values(
     if host is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Host not found")
 
-    stmt = select(Vals).where(Vals.host == host_id)
+    stmt = select(Vals).where(Vals.host == host_id, Vals.status == 0)
 
     # Apply optional filtering
     if filter_by and filter_value and hasattr(Vals, filter_by):
@@ -85,9 +85,10 @@ async def list_values(
     else:
         stmt = stmt.order_by(Vals.created.desc())
 
-    total_records: int = session.exec(
-        select(func.count()).select_from(Vals).where(Vals.host == host_id)
-    ).one()
+    count_query = select(func.count()).select_from(Vals).where(Vals.host == host_id, Vals.status == 0)
+    if filter_by and filter_value and hasattr(Vals, filter_by):
+        count_query = count_query.where(getattr(Vals, filter_by) == filter_value)
+    total_records: int = session.exec(count_query).one()
     total_pages = (total_records + per_page - 1) // per_page if total_records else 1
 
     stmt = stmt.offset((page - 1) * per_page).limit(per_page)
