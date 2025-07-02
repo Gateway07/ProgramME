@@ -102,10 +102,10 @@ async def _refresh_host(host, session: Annotated[Session, Depends(get_session)])
 
     # TODO fetch variable list per host dynamically
     result = await fetch_values((host.ip, host.port), host.var_address_1)
-    if isinstance(result, Exception):
-        vals = Vals(error=str(result), status=-1)
-    elif result is None:
-        vals = Vals(error="Machine unreachable", status=-1)
+    if result is None:
+        vals = Vals(host=host.id, error="Machine unreachable", status=-1)
+    elif isinstance(result, Exception):
+        vals = Vals(host=host.id, error=str(result), status=-1)
     else:
         vals = Vals(host=host.id, **result)
 

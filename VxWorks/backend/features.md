@@ -24,9 +24,10 @@ Establish a connection to the PostgreSQL database using the schema defined in `s
 
 # Frontend (React.js)
 
-## UI view areas
+## Front-end UI
 
-Front-end UI should be rich single-page application and main page should be consisted on 3 separated view areas:
+Front-end UI should be rich single-page application. Style of UI should be based on dark theme as Grafana dashboard app. Main page should be consisted on 3
+separated (flexible) view areas:
 
 1. Hosts list view
 2. Values (history) list view

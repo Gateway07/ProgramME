@@ -4,7 +4,7 @@ export interface Host {
   firm?: string;
   ip: string;
   port: number;
-  status?: string;
+  status?: number;
 }
 
 export interface ValueRow {

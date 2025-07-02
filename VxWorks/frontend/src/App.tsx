@@ -1,14 +1,12 @@
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import DashboardPage from "./pages/DashboardPage";
-import HostDetailsPage from "./pages/HostDetailsPage";
+import Dashboard from "./pages/Dashboard";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/hosts/:id" element={<HostDetailsPage />} />
+        <Route path="/" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
   );
