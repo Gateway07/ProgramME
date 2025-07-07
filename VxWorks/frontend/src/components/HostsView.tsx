@@ -10,27 +10,27 @@ interface HostsViewProps {
     onRefreshHost: (hostId: number) => Promise<void>;
 }
 
-// Helper to group hosts into a tree structure
+// Group hosts by firm/location (2-level tree: firm -> hosts list)
 const groupHosts = (hosts: Host[]) => {
-    const grouped: { [firm: string]: { [model: string]: Host[] } } = {};
+    const grouped: Record<string, Host[]> = {};
 
-    hosts.forEach(host => {
-        const locationName = (host.location || 'Неизвестно').trim();
-        const modelName = (host.model || 'Неизвестно').trim();
+    hosts.forEach((host) => {
+        const locationName = (host.location || "Неизвестно").trim();
 
-        const existingFirmKey = Object.keys(grouped).find(k => k.toLowerCase() === locationName.toLowerCase()) || locationName;
-        if (!grouped[existingFirmKey]) {
-            grouped[existingFirmKey] = {};
+        const firmKey =
+            Object.keys(grouped).find(
+                (k) => k.toLowerCase() === locationName.toLowerCase()
+            ) || locationName;
+
+        if (!grouped[firmKey]) {
+            grouped[firmKey] = [];
         }
 
-        const existingModelKey = Object.keys(grouped[existingFirmKey]).find(k => k.toLowerCase() === modelName.toLowerCase()) || modelName;
-
-        if (!grouped[existingFirmKey][existingModelKey]) {
-            grouped[existingFirmKey][existingModelKey] = [];
-        }
-
-        grouped[existingFirmKey][existingModelKey].push(host);
+        grouped[firmKey].push(host);
     });
+
+    // Sort hosts in each firm by host.no for deterministic order
+    Object.values(grouped).forEach((arr) => arr.sort((a, b) => a.no - b.no));
 
     return grouped;
 };
@@ -152,41 +152,25 @@ const HostsView: React.FC<HostsViewProps> = ({onHostSelect, selectedHostId, onRe
                                 </div>
                                 {isFirmExpanded && (
                                     <div style={{marginLeft: '20px'}}>
-                                        {Object.entries(models)
-                                            .sort(([modelA], [modelB]) => modelA.localeCompare(modelB))
-                                            .map(([model, hostList]) => {
-                                                const modelKey = `${firm}-${model}`;
-                                                const isModelExpanded = !!expandedNodes[modelKey];
-                                                return (
-                                                    <div key={model}>
-                                                        <div className="tree-item" onClick={() => toggleNode(modelKey)}>
-                                                            <span className="icon">{isModelExpanded ? '▼' : '►'}</span>
-                                                            <span className="label">{model}</span>
-                                                        </div>
-                                                        {isModelExpanded && (
-                                                            <div style={{marginLeft: '20px'}}>
-                                                                {hostList.map(host => (
-                                                                    <div
-                                                                        key={host.id}
-                                                                        onClick={() => handleSelectHost(host.id)}
-                                                                        className={`tree-item ${selectedHostId === host.id ? 'selected' : ''}`}>
-                                                                        <StatusIcon status={host.status ?? -2}/>
-                                                                        <span className="label">{host.id}</span>
-                                                                        <button
-                                                                            className="refresh-button"
-                                                                            onClick={(e) => handleRefreshClick(e, host.id)}
-                                                                            disabled={refreshingHostId !== null}
-                                                                        >
-                                                                            <VscRefresh
-                                                                                className={refreshingHostId === host.id ? 'refreshing' : ''}/>
-                                                                        </button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                                        {models.map((host) => (
+                                            <div
+                                                key={host.id}
+                                                onClick={() => handleSelectHost(host.id)}
+                                                className={`tree-item ${selectedHostId === host.id ? "selected" : ""}`}
+                                                style={{ display: "flex", gap: "10px" }}
+                                            >
+                                                <StatusIcon status={host.status ?? -2} />
+                                                <span style={{ width: "50px" }}>{host.no}</span>
+                                                <span style={{ flex: 1 }}>{host.model}</span>
+                                                <button
+                                                    className="refresh-button"
+                                                    onClick={(e) => handleRefreshClick(e, host.id)}
+                                                    disabled={refreshingHostId !== null}
+                                                >
+                                                    <VscRefresh className={refreshingHostId === host.id ? "refreshing" : ""} />
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
