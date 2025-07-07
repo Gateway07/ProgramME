@@ -15,11 +15,10 @@ const groupHosts = (hosts: Host[]) => {
     const grouped: { [firm: string]: { [model: string]: Host[] } } = {};
 
     hosts.forEach(host => {
-        const firmName = (host.firm || 'Unknown Firm').trim();
-        const modelName = (host.model || 'Unknown Model').trim();
+        const locationName = (host.location || 'Неизвестно').trim();
+        const modelName = (host.model || 'Неизвестно').trim();
 
-        const existingFirmKey = Object.keys(grouped).find(k => k.toLowerCase() === firmName.toLowerCase()) || firmName;
-
+        const existingFirmKey = Object.keys(grouped).find(k => k.toLowerCase() === locationName.toLowerCase()) || locationName;
         if (!grouped[existingFirmKey]) {
             grouped[existingFirmKey] = {};
         }
@@ -72,7 +71,7 @@ const HostsView: React.FC<HostsViewProps> = ({onHostSelect, selectedHostId, onRe
             const hostsData = hostsResponse.data;
 
             // Sort hosts by ID
-            hostsData.sort((a, b) => a.id - b.id);
+            hostsData.sort((a, b) => a.no - b.no);
 
             const hostsWithStatus = await Promise.all(
                 hostsData.map(async (host) => {
@@ -133,14 +132,14 @@ const HostsView: React.FC<HostsViewProps> = ({onHostSelect, selectedHostId, onRe
     if (error) return <div style={{color: 'red'}}>{error}</div>;
 
     return (
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
             <div style={{marginBottom: '10px'}}>
                 <button className="embossed-button" onClick={handleRefreshAll} disabled={refreshing}>
                     {refreshing ? 'Refreshing All...' : 'Все'}
                 </button>
             </div>
             <h2>Машины</h2>
-            <div style={{marginTop: '10px'}}>
+            <div style={{ flex: '1 1 auto', overflowY: 'auto', paddingRight: '15px', marginTop: '10px' }}>
                 {Object.entries(groupedHosts)
                     .sort(([firmA], [firmB]) => firmA.localeCompare(firmB))
                     .map(([firm, models]) => {

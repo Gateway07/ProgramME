@@ -1,5 +1,5 @@
 """Pydantic models mapping to database schema."""
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from sqlmodel import Field, SQLModel
@@ -11,6 +11,12 @@ class Host(SQLModel, table=True):
     firm: Optional[str] = None
     ip: str
     port: int = 4000
+    no: int
+    place: int
+    location: str
+    serial_no: str
+    reg_no: str
+    created: date = Field(default_factory=datetime.utcnow)
     var_address_1: str
 
 

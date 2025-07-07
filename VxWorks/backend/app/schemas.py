@@ -12,11 +12,12 @@ class HostBase(BaseModel):
     later via separate response schemas if needed.
     """
     id: int
+    no: int
     model: str
-    firm: Optional[str] = None
+    location: str
     ip: str
     port: int
-    var_address_1: str
+    var_address_1: Optional[str]
 
     class Config:
         orm_mode = True  # Pydantic v1 compatibility
