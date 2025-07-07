@@ -70,7 +70,13 @@ const ValuesView: React.FC<ValuesViewProps> = ({selectedHostId, onRowSelect}) =>
             <table style={{width: '100%', borderCollapse: 'collapse'}}>
                 <thead>
                 <tr>
-                    {headers.map(header => <th key={header} style={{border: '1px solid grey', padding: '8px', textTransform: 'capitalize'}}>{header}</th>)}
+                    {headers.map(header => (
+                        <th
+                            key={header}
+                            style={{border: '1px solid grey', padding: '8px', textTransform: 'capitalize'}}>
+                            {header === 'created' ? 'Дата' : header}
+                        </th>
+                    ))}
                 </tr>
                 </thead>
                 <tbody>
