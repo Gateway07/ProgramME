@@ -5,9 +5,10 @@ import {PagedValues, ValueRow} from '../types';
 interface ValuesViewProps {
     selectedHostId: number | null;
     onRowSelect: (row: ValueRow | null) => void;
+    externallySelectedRow?: ValueRow | null;
 }
 
-const ValuesView: React.FC<ValuesViewProps> = ({selectedHostId, onRowSelect}) => {
+const ValuesView: React.FC<ValuesViewProps> = ({selectedHostId, onRowSelect, externallySelectedRow}) => {
     const [data, setData] = useState<PagedValues | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -46,6 +47,45 @@ const ValuesView: React.FC<ValuesViewProps> = ({selectedHostId, onRowSelect}) =>
             fetchValues(selectedHostId, currentPage);
         }
     }, [currentPage, selectedHostId, fetchValues]);
+
+    // Handle external selection (e.g., click on monthly chart)
+    useEffect(() => {
+        const focusRow = async (row: ValueRow) => {
+            if (!selectedHostId || !row) return;
+            try {
+                setLoading(true);
+                const per_page = 10;
+                // Fetch page 1 to know total_pages
+                const first = await api.get<PagedValues>(`/hosts/${selectedHostId}/values`, { params: { page: 1, per_page } });
+                const contains = (vals: ValueRow[]) => vals.some(v => v.id === row.id);
+                if (contains(first.data.values)) {
+                    setData(first.data);
+                    setCurrentPage(1);
+                    setSelectedRowId(row.id);
+                    onRowSelect(row);
+                    return;
+                }
+                for (let p = 2; p <= first.data.total_pages; p++) {
+                    const resp = await api.get<PagedValues>(`/hosts/${selectedHostId}/values`, { params: { page: p, per_page } });
+                    if (contains(resp.data.values)) {
+                        setData(resp.data);
+                        setCurrentPage(p);
+                        setSelectedRowId(row.id);
+                        onRowSelect(row);
+                        return;
+                    }
+                }
+            } catch (e) {
+                // Ignore navigation errors for now
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (externallySelectedRow && selectedHostId) {
+            void focusRow(externallySelectedRow);
+        }
+    }, [externallySelectedRow, selectedHostId, onRowSelect]);
 
     const handleRowClick = (row: ValueRow) => {
         setSelectedRowId(row.id);

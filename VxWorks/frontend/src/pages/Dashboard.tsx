@@ -33,13 +33,21 @@ const Dashboard: React.FC = () => {
             </Panel>
             <PanelResizeHandle className='Resizer vertical' />
             <Panel>
-              <DashboardView selectedRow={selectedRow} />
+              <DashboardView
+                selectedRow={selectedRow}
+                selectedHostId={selectedHostId}
+                onSelectRow={setSelectedRow}
+              />
             </Panel>
           </PanelGroup>
         </Panel>
         <PanelResizeHandle className='Resizer horizontal' />
         <Panel>
-          <ValuesView selectedHostId={selectedHostId} onRowSelect={setSelectedRow} />
+          <ValuesView
+            selectedHostId={selectedHostId}
+            onRowSelect={setSelectedRow}
+            externallySelectedRow={selectedRow}
+          />
         </Panel>
       </PanelGroup>
     </div>
