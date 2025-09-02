@@ -4,7 +4,6 @@ from typing import List, Tuple
 
 import openai
 
-# Google Gemini API: AIzaSyDvVsGgI7U7R0MkgUXZKQVcoqhVy68wUxk
 base_urls = {"ollama": "http://localhost:11434/v1", "or": "https://openrouter.ai/api/v1",
              "dp": "https://api.deepseek.com/v1", "veles": "https://veles.osmand.net:8081/api",
              "anthropic": "https://api.anthropic.com/v1"}
