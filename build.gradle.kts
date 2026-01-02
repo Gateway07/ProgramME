@@ -1,9 +1,16 @@
 plugins {
     id("java")
+    id("io.freefair.aspectj.post-compile-weaving") version "8.6"
 }
 
 group = "org.example"
 version = "1.0-SNAPSHOT"
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
 
 repositories {
     mavenCentral()

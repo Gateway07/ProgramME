@@ -11,9 +11,14 @@ public final class TracingLtwAspect {
 			"!execution(* is*()) && " +
 			"!execution(* set*(..))")
 	public Object around(ProceedingJoinPoint pjp) throws Throwable {
-		TracingAspectService tracingAspectService = TracingSpringContextHolder
-				.getApplicationContext()
-				.getBean(TracingAspectService.class);
+		TracingAspectService tracingAspectService;
+		try {
+			tracingAspectService = TracingSpringContextHolder
+					.getApplicationContext()
+					.getBean(TracingAspectService.class);
+		} catch (RuntimeException e) {
+			return pjp.proceed();
+		}
 		return tracingAspectService.around(pjp);
 	}
 }
