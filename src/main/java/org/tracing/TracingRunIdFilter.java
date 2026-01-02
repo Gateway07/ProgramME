@@ -14,6 +14,16 @@ import java.io.IOException;
 @Component
 public class TracingRunIdFilter extends OncePerRequestFilter {
 	public static final String RUN_ID_HEADER = "X-RUN_MDC_KEY";
+	private static final String SEARCH_TEST_PATH_PREFIX = "/admin/search-test/";
+
+	@Override
+	protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+		String uri = request.getRequestURI();
+		if (uri == null) {
+			return true;
+		}
+		return !uri.startsWith(SEARCH_TEST_PATH_PREFIX);
+	}
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request,	@NonNull HttpServletResponse response,

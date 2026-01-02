@@ -4,8 +4,6 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.aspectj.lang.reflect.SourceLocation;
 import org.slf4j.MDC;
@@ -21,7 +19,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-@Aspect
 @Component
 @RequiredArgsConstructor
 public class TracingAspectService {
@@ -159,10 +156,6 @@ public class TracingAspectService {
         tracings.remove(runId);
     }
 
-    @Around("(execution(* *.*(..))) && " +
-            "!execution(* get*()) && " +
-            "!execution(* is*()) && " +
-            "!execution(* set*(..))")
     public Object around(ProceedingJoinPoint pjp) throws Throwable {
         String runId = MDC.get(RUN_MDC_KEY);
         List<BreakPoint> patterns = getPoints(runId);

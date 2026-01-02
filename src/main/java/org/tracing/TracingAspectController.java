@@ -8,7 +8,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/tracing/runs")
+@RequestMapping("/tracing")
 public class TracingAspectController {
 
 	private final TracingAspectService registry;
