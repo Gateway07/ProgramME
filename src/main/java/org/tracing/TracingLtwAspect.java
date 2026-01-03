@@ -7,6 +7,7 @@ import org.aspectj.lang.annotation.Aspect;
 @Aspect
 public final class TracingLtwAspect {
 	@Around("(execution(* *.*(..))) && " +
+			"!within(org.tracing..*) && " +
 			"!execution(* get*()) && " +
 			"!execution(* is*()) && " +
 			"!execution(* set*(..))")

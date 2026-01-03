@@ -73,7 +73,7 @@ public class TracingAspectService {
 	public enum Representation {
 		PUBLIC_FIELDS,
 		DECLARED_FIELDS,
-		DECLARED_FIELDS_WITH_GETTERS;
+		DECLARED_FIELDS_WITH_GETTERS
 	}
 
 	public record Options(Map<String, Integer> sizeLimitPerContainerClass, Map<String, Representation> objectRepresentationPerClass, int maxDepthLimit) {
