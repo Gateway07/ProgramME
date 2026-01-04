@@ -18,6 +18,7 @@ repositories {
 
 dependencies {
     implementation(platform("org.springframework:spring-framework-bom:6.1.5"))
+	val springBootVersion = "3.2.4"
 
     implementation("org.springframework:spring-context")
     implementation("org.springframework:spring-aop")
@@ -40,6 +41,10 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+	testImplementation("org.springframework:spring-test")
+	testImplementation("org.springframework.boot:spring-boot-test:$springBootVersion")
+	testImplementation("org.springframework.boot:spring-boot-test-autoconfigure:$springBootVersion")
 
     testImplementation("junit:junit:4.13.2")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
