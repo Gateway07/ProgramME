@@ -38,24 +38,24 @@ public class TracingAspectService {
         private String stackTrace;
         private String errorMessage;
         private final List<MutableTracing> thenTracings = new ArrayList<>();
-        private final boolean thenCondition;
+        private final boolean ifCondition;
 
-        private MutableTracing(Phase phase, String point, int lineOfCode, boolean thenCondition, long timestampMs) {
+        private MutableTracing(Phase phase, String point, int lineOfCode, boolean ifCondition, long timestampMs) {
             this.phase = phase;
             this.point = point;
             this.lineOfCode = lineOfCode;
             this.timestampMs = timestampMs;
-			this.thenCondition = thenCondition;
+			this.ifCondition = ifCondition;
         }
 
         private Tracing toImmutable() {
             Tracing[] nested = thenTracings.isEmpty() ? null : thenTracings.stream().map(MutableTracing::toImmutable).toArray(Tracing[]::new);
-            return new Tracing(phase, point, lineOfCode, thenCondition, watchesBefore, watchesAfter, watchesOnError,
+            return new Tracing(phase, point, lineOfCode, ifCondition, watchesBefore, watchesAfter, watchesOnError,
                     stackTrace, errorMessage, timestampMs, durationMs, nested);
         }
     }
 
-    public record Tracing(Phase phase, String point, int lineOfCode, boolean thenCondition,
+    public record Tracing(Phase phase, String point, int lineOfCode, boolean ifCondition,
                           Map<String, String> watchesBefore, Map<String, String> watchesAfter, Map<String, String> watchesOnError,
                           String stackTrace, String errorMessage,
                           long timestampMs, long durationMs, Tracing[] thenTracings) {
@@ -63,7 +63,7 @@ public class TracingAspectService {
 
     public record BreakPoint(String className, int lineOfCode,
                              String[] watchExpressionsBefore, String[] watchExpressionsAfter, String[] watchExpressionsOnError,
-                             String thenConditionExpression, BreakPoint[] thenPoints, Options options) {
+                             String ifConditionExpression, BreakPoint[] thenPoints, Options options) {
 		@NonNull
         public String toString() {
             return String.format("%s#L%s", className, lineOfCode);
@@ -188,9 +188,9 @@ public class TracingAspectService {
         }
         long start = System.currentTimeMillis();
 
-        boolean isThenPointFlow = caughtPoint.thenConditionExpression() == null ||
-		        caughtPoint.thenConditionExpression().isBlank() ||
-		        getBoolean(caughtPoint.options(), caughtPoint.thenConditionExpression(), pjp.getThis(), parameters, args);
+        boolean isThenPointFlow = caughtPoint.ifConditionExpression() == null ||
+		        caughtPoint.ifConditionExpression().isBlank() ||
+		        getBoolean(caughtPoint.options(), caughtPoint.ifConditionExpression(), pjp.getThis(), parameters, args);
 		if (!isThenPointFlow) {
 			return pjp.proceed();
 		}
